@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body{margin:0;background:oklch(98% 0.003 260);}
+  .sidebar{display:flex;transform:translateX(-100%);transition:transform .2s ease}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none}
+  .sidebar-overlay.open{display:block}
+  .menu-btn{display:flex}
+  .content-area{padding:16px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+  .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  .filter-row{display:flex;flex-wrap:wrap;gap:10px}
+  select{font-family:inherit}
+  @media (min-width:1024px){
+    .sidebar{transform:none}
+    .sidebar-overlay{display:none !important}
+    .menu-btn{display:none}
+    .content-area{padding:32px 40px;margin-left:240px}
+    .kpi-grid{gap:20px}
+    .chart-grid{gap:20px}
+  }
+</style>
+</helmet>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:oklch(98% 0.003 260);font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;padding:20px">
+    <form onSubmit="{{ handleLogin }}" style="width:100%;max-width:380px;background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:16px;padding:36px 32px;box-shadow:0 1px 3px oklch(0% 0 0 / 0.04)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
+        <div style="width:36px;height:36px;border-radius:10px;background:#2563eb"></div>
+        <div style="font-size:19px;font-weight:700;color:oklch(22% 0.01 260)">ESB Analytics</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:oklch(22% 0.01 260);margin-bottom:4px">Masuk ke Dashboard</div>
+      <div style="font-size:14px;color:oklch(50% 0.01 260);margin-bottom:24px">Monitoring sales &amp; membership F&amp;B</div>
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(35% 0.01 260);margin-bottom:6px">Email</label>
+      <input type="email" required="true" placeholder="nama@esb.co.id" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:10px;border:1px solid oklch(88% 0.005 260);font-size:14px;margin-bottom:16px;outline:none"></input>
+      <label style="display:block;font-size:13px;font-weight:600;color:oklch(35% 0.01 260);margin-bottom:6px">Password</label>
+      <input type="password" required="true" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:11px 14px;border-radius:10px;border:1px solid oklch(88% 0.005 260);font-size:14px;margin-bottom:24px;outline:none"></input>
+      <button type="submit" style="width:100%;padding:12px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Masuk ke Dashboard</button>
+      <div style="text-align:center;font-size:12px;color:oklch(55% 0.01 260);margin-top:18px">Akses terbatas untuk management &amp; eksekutif</div>
+    </form>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+<div style="font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;color:oklch(22% 0.01 260);min-height:100vh;background:oklch(98% 0.003 260)">
+
+  <div class="sidebar-overlay {{ sidebarOpenClass }}" onClick="{{ toggleSidebar }}" style="position:fixed;inset:0;background:oklch(0% 0 0 / 0.35);z-index:15"></div>
+
+  <div class="sidebar {{ sidebarOpenClass }}" style="position:fixed;top:0;left:0;bottom:0;width:240px;flex-direction:column;background:#fff;border-right:1px solid oklch(91% 0.005 260);padding:24px 16px;box-sizing:border-box;z-index:20">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:32px">
+      <div style="width:30px;height:30px;border-radius:8px;background:#2563eb"></div>
+      <div style="font-size:16px;font-weight:700">ESB Analytics</div>
+    </div>
+    <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="4">
+      <div onClick="{{ nav.onClick }}" style-hover="background:oklch(96% 0.005 260)" style="display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;margin-bottom:2px;background:{{ nav.bg }};color:{{ nav.color }}">
+        <div style="width:9px;height:9px;border-radius:{{ nav.shape }};background:{{ nav.color }}"></div>
+        <div style="font-size:14px;font-weight:{{ nav.weight }}">{{ nav.label }}</div>
+      </div>
+    </sc-for>
+    <div style="margin-top:auto;padding-top:16px;border-top:1px solid oklch(91% 0.005 260)">
+      <div onClick="{{ handleLogout }}" style="display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;color:oklch(50% 0.01 260)" style-hover="background:oklch(96% 0.005 260)">
+        <div style="width:9px;height:9px;border-radius:2px;background:oklch(70% 0.01 260)"></div>
+        <div style="font-size:14px;font-weight:500">Keluar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <div class="menu-btn" onClick="{{ toggleSidebar }}" style="align-items:center;gap:10px;cursor:pointer;margin-bottom:16px">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="width:20px;height:2px;background:oklch(30% 0.01 260)"></div>
+        <div style="width:20px;height:2px;background:oklch(30% 0.01 260)"></div>
+        <div style="width:20px;height:2px;background:oklch(30% 0.01 260)"></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:oklch(30% 0.01 260)">Menu</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:20px">
+      <div>
+        <div style="font-size:24px;font-weight:700">{{ pageTitle }}</div>
+        <div style="font-size:13px;color:oklch(50% 0.01 260);margin-top:4px">Data terakhir diperbarui: {{ lastSynced }}</div>
+      </div>
+    </div>
+
+    <div class="filter-row" style="margin-bottom:24px">
+      <select value="{{ outlet }}" onChange="{{ setOutlet }}" style="padding:10px 14px;border-radius:10px;border:1px solid oklch(88% 0.005 260);background:#fff;font-size:13px;font-weight:500">
+        <sc-for list="{{ outletOptions }}" as="opt" hint-placeholder-count="5">
+          <option value="{{ opt }}">{{ opt }}</option>
+        </sc-for>
+      </select>
+      <div style="position:relative">
+        <div onClick="{{ togglePicker }}" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border:1px solid oklch(88% 0.005 260);border-radius:10px;font-size:13px;font-weight:500;cursor:pointer">
+          <div style="width:8px;height:8px;border-radius:2px;background:#2563eb"></div>
+          {{ periodLabel }}
+        </div>
+        <sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid oklch(88% 0.005 260);border-radius:12px;padding:16px;box-shadow:0 8px 24px oklch(0% 0 0 / 0.08);z-index:20;display:flex;flex-direction:column;gap:12px;min-width:260px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:oklch(45% 0.01 260);margin-bottom:5px">Dari tanggal</label>
+              <input type="date" value="{{ dateStart }}" onChange="{{ setDateStart }}" max="{{ dateEnd }}" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid oklch(88% 0.005 260);font-size:13px;font-family:inherit"></input>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:oklch(45% 0.01 260);margin-bottom:5px">Sampai tanggal</label>
+              <input type="date" value="{{ dateEnd }}" onChange="{{ setDateEnd }}" min="{{ dateStart }}" max="{{ today }}" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid oklch(88% 0.005 260);font-size:13px;font-family:inherit"></input>
+            </div>
+            <button onClick="{{ togglePicker }}" style="padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Terapkan</button>
+          </div>
+        </sc-if>
+      </div>
+      <select value="{{ category }}" onChange="{{ setCategory }}" style="padding:10px 14px;border-radius:10px;border:1px solid oklch(88% 0.005 260);background:#fff;font-size:13px;font-weight:500">
+        <sc-for list="{{ categoryOptions }}" as="opt" hint-placeholder-count="5">
+          <option value="{{ opt }}">{{ opt }}</option>
+        </sc-for>
+      </select>
+    </div>
+
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+      <div class="kpi-grid" style="margin-bottom:24px">
+        <sc-for list="{{ overviewKpis }}" as="kpi" hint-placeholder-count="6">
+          <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:18px 20px">
+            <div style="font-size:13px;color:oklch(50% 0.01 260);font-weight:500;margin-bottom:10px">{{ kpi.label }}</div>
+            <div style="font-size:24px;font-weight:700">{{ kpi.value }}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:8px;color:{{ kpi.deltaColor }}">{{ kpi.delta }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div class="chart-grid">
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;grid-column:1/-1">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Tren Revenue Harian</div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:160px">
+            <sc-for list="{{ trendBars }}" as="bar" hint-placeholder-count="30">
+              <div style="flex:1;height:{{ bar.pct }}%;background:#2563eb;border-radius:3px 3px 0 0;min-width:4px" title="{{ bar.label }}"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Revenue per Outlet</div>
+          <sc-for list="{{ outletBars }}" as="o" hint-placeholder-count="5">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="font-weight:500">{{ o.name }}</span><span style="color:oklch(50% 0.01 260)">{{ o.valueLabel }}</span></div>
+              <div style="height:8px;background:oklch(93% 0.005 260);border-radius:4px"><div style="height:100%;width:{{ o.pct }}%;background:#2563eb;border-radius:4px"></div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px">
+          <div style="font-size:14px;font-weight:700;align-self:flex-start;margin-bottom:4px">Kontribusi Revenue Member</div>
+          <div style="width:120px;height:120px;border-radius:50%;background:{{ revenueDonutStyle }};display:flex;align-items:center;justify-content:center">
+            <div style="width:80px;height:80px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <div style="font-size:20px;font-weight:700">{{ memberRevenuePct }}%</div>
+              <div style="font-size:10px;color:oklch(50% 0.01 260)">Member</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSales }}" hint-placeholder-val="{{ false }}">
+      <div class="kpi-grid" style="margin-bottom:24px">
+        <sc-for list="{{ salesKpis }}" as="kpi" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:18px 20px">
+            <div style="font-size:13px;color:oklch(50% 0.01 260);font-weight:500;margin-bottom:10px">{{ kpi.label }}</div>
+            <div style="font-size:24px;font-weight:700">{{ kpi.value }}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:8px;color:{{ kpi.deltaColor }}">{{ kpi.delta }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div class="chart-grid" style="margin-bottom:16px">
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;grid-column:1/-1">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Tren Revenue</div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:160px">
+            <sc-for list="{{ trendBars }}" as="bar" hint-placeholder-count="30">
+              <div style="flex:1;height:{{ bar.pct }}%;background:#2563eb;border-radius:3px 3px 0 0;min-width:4px" title="{{ bar.label }}"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Distribusi Peak Hour</div>
+          <div style="display:flex;align-items:flex-end;gap:5px;height:140px">
+            <sc-for list="{{ peakBars }}" as="p" hint-placeholder-count="13">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="width:100%;height:{{ p.pct }}%;background:#2563eb;border-radius:3px 3px 0 0;min-height:2px"></div>
+                <div style="font-size:9px;color:oklch(55% 0.01 260)">{{ p.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Revenue per Outlet</div>
+          <sc-for list="{{ outletBars }}" as="o" hint-placeholder-count="5">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="font-weight:500">{{ o.name }}</span><span style="color:oklch(50% 0.01 260)">{{ o.valueLabel }}</span></div>
+              <div style="height:8px;background:oklch(93% 0.005 260);border-radius:4px"><div style="height:100%;width:{{ o.pct }}%;background:#2563eb;border-radius:4px"></div></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">Top Seller</div>
+          <sc-for list="{{ topSellers }}" as="pr" hint-placeholder-count="5">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+              <div><div style="font-size:13px;font-weight:600">{{ pr.name }}</div><div style="font-size:11px;color:oklch(55% 0.01 260)">{{ pr.category }} · {{ pr.qty }} terjual</div></div>
+              <div style="font-size:13px;font-weight:700">{{ pr.revenueLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">Slow Moving</div>
+          <sc-for list="{{ slowMovers }}" as="pr" hint-placeholder-count="5">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+              <div><div style="font-size:13px;font-weight:600">{{ pr.name }}</div><div style="font-size:11px;color:oklch(55% 0.01 260)">{{ pr.category }} · {{ pr.qty }} terjual</div></div>
+              <div style="font-size:13px;font-weight:700">{{ pr.revenueLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;margin-top:16px;overflow-x:auto">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:700">Analisa Menu Underperforming</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:oklch(50% 0.01 260)">Threshold takeout: &lt;{{ takeoutThreshold }} unit</span>
+            <input type="range" min="100" max="1000" step="50" value="{{ takeoutThreshold }}" onChange="{{ setThreshold }}" style="width:140px"></input>
+          </div>
+        </div>
+        <div style="min-width:560px">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr;font-size:11px;font-weight:600;color:oklch(50% 0.01 260);padding:0 4px 10px;border-bottom:1px solid oklch(93% 0.005 260)">
+            <div>Menu</div><div>Unit Terjual</div><div>Kontribusi Revenue</div><div>Tren</div><div>Status</div>
+          </div>
+          <sc-for list="{{ menuUnderperforming }}" as="m" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr;font-size:13px;padding:10px 4px;border-bottom:1px solid oklch(95% 0.005 260);align-items:center">
+              <div style="font-weight:600">{{ m.name }}</div>
+              <div>{{ m.qty }}</div>
+              <div>{{ m.contribution }}</div>
+              <div style="color:{{ m.trendColor }};font-weight:600">{{ m.trendLabel }}</div>
+              <div><span style="background:{{ m.statusBg }};color:{{ m.statusColor }};font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px">{{ m.statusLabel }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMembership }}" hint-placeholder-val="{{ false }}">
+      <div class="kpi-grid" style="margin-bottom:24px">
+        <sc-for list="{{ membershipKpis }}" as="kpi" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:18px 20px">
+            <div style="font-size:13px;color:oklch(50% 0.01 260);font-weight:500;margin-bottom:10px">{{ kpi.label }}</div>
+            <div style="font-size:24px;font-weight:700">{{ kpi.value }}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:8px;color:{{ kpi.deltaColor }}">{{ kpi.delta }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div class="chart-grid" style="margin-bottom:16px">
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Member Baru per Minggu</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;height:140px">
+            <sc-for list="{{ memberNewBars }}" as="b" hint-placeholder-count="8">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="width:100%;height:{{ b.pct }}%;background:#2563eb;border-radius:3px 3px 0 0;min-height:2px"></div>
+                <div style="font-size:9px;color:oklch(55% 0.01 260)">{{ b.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+          <div style="font-size:14px;font-weight:700;align-self:flex-start">Aktif vs Churn</div>
+          <div style="width:120px;height:120px;border-radius:50%;background:{{ activeDonutStyle }};display:flex;align-items:center;justify-content:center">
+            <div style="width:80px;height:80px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <div style="font-size:18px;font-weight:700">{{ churnRateLabel }}</div>
+              <div style="font-size:10px;color:oklch(50% 0.01 260)">Churn</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:2px;background:#2563eb"></div>Aktif</div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:2px;background:oklch(90% 0.005 260)"></div>Tidak Aktif</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;overflow-x:auto">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px">Top Member by Spending</div>
+        <div style="min-width:520px">
+          <div style="display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 1fr;font-size:11px;font-weight:600;color:oklch(50% 0.01 260);padding:0 4px 10px;border-bottom:1px solid oklch(93% 0.005 260)">
+            <div>Nama</div><div>Outlet</div><div>Tier</div><div>Kunjungan</div><div>Total Spending</div>
+          </div>
+          <sc-for list="{{ topMembers }}" as="m" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 1fr;font-size:13px;padding:11px 4px;border-bottom:1px solid oklch(95% 0.005 260);align-items:center">
+              <div style="font-weight:600">{{ m.name }}</div>
+              <div style="color:oklch(50% 0.01 260)">{{ m.outlet }}</div>
+              <div><span style="background:oklch(94% 0.03 255);color:#2563eb;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">{{ m.tier }}</span></div>
+              <div>{{ m.visits }}</div>
+              <div style="font-weight:700">{{ m.spendingLabel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMarketing }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border:1px dashed oklch(85% 0.005 260);border-radius:14px;padding:20px 24px;text-align:center;margin-bottom:20px">
+        <div style="font-size:13px;color:oklch(50% 0.01 260);max-width:560px;margin:0 auto">Campaign reach &amp; CTR dari ad platform belum terhubung ke API ESB. Analisa promo &amp; menu di bawah dihitung dari data redemption transaksi yang sudah tercatat.</div>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <sc-for list="{{ promoKpis }}" as="kpi" hint-placeholder-count="3">
+          <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:18px 20px">
+            <div style="font-size:13px;color:oklch(50% 0.01 260);font-weight:500;margin-bottom:10px">{{ kpi.label }}</div>
+            <div style="font-size:24px;font-weight:700">{{ kpi.value }}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:8px;color:{{ kpi.deltaColor }}">{{ kpi.delta }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;margin-bottom:16px;overflow-x:auto">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px">Efektivitas Promo (Lift vs Baseline &amp; ROI)</div>
+        <div style="min-width:520px">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr;font-size:11px;font-weight:600;color:oklch(50% 0.01 260);padding:0 4px 10px;border-bottom:1px solid oklch(93% 0.005 260)">
+            <div>Promo</div><div>Redemption</div><div>Lift</div><div>ROI</div><div>Status</div>
+          </div>
+          <sc-for list="{{ promoWithStatus }}" as="p" hint-placeholder-count="7">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr;font-size:13px;padding:10px 4px;border-bottom:1px solid oklch(95% 0.005 260);align-items:center">
+              <div style="font-weight:600">{{ p.name }}</div>
+              <div>{{ p.redemptions }}</div>
+              <div>+{{ p.liftPct }}%</div>
+              <div>{{ p.roi }}x</div>
+              <div><span style="background:{{ p.statusBg }};color:{{ p.statusColor }};font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px">{{ p.status }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="chart-grid" style="margin-bottom:16px">
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">Promo Paling Banyak Upsell</div>
+          <sc-for list="{{ topPromos }}" as="p" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+              <div><div style="font-size:13px;font-weight:600">{{ p.name }}</div><div style="font-size:11px;color:oklch(55% 0.01 260)">{{ p.redemptions }} redemption</div></div>
+              <div style="font-size:13px;font-weight:700;color:#16a34a">+{{ p.upsellPct }}%</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">Promo Jarang Dipakai</div>
+          <sc-for list="{{ leastPromos }}" as="p" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+              <div><div style="font-size:13px;font-weight:600">{{ p.name }}</div><div style="font-size:11px;color:oklch(55% 0.01 260)">+{{ p.upsellPct }}% upsell</div></div>
+              <div style="font-size:13px;font-weight:700;color:#dc2626">{{ p.redemptions }} redemption</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px">Rekomendasi Promo Ke Depan</div>
+        <div style="font-size:12px;color:oklch(50% 0.01 260);margin-bottom:14px">Rule-based dari pola data historis (bukan prediksi ML)</div>
+        <sc-for list="{{ actionRecommendations }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+            <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;background:oklch(93% 0.04 255);color:#2563eb;white-space:nowrap">{{ r.type }}</span>
+            <div style="font-size:13px;color:oklch(30% 0.01 260)">{{ r.text }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#fff;border:1px solid oklch(91% 0.005 260);border-radius:14px;padding:20px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px">Rekomendasi Menu &amp; Promo</div>
+        <div style="font-size:12px;color:oklch(50% 0.01 260);margin-bottom:14px">Berdasarkan volume penjualan menu terendah (slow moving)</div>
+        <sc-for list="{{ menuRecommendations }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid oklch(94% 0.005 260)">
+            <div>
+              <div style="font-size:13px;font-weight:600">{{ r.name }}</div>
+              <div style="font-size:11px;color:oklch(55% 0.01 260)">{{ r.category }} · {{ r.qty }} terjual/periode</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;background:{{ r.actionBg }};color:{{ r.actionColor }}">{{ r.action }}</span>
+              <div style="font-size:12px;color:oklch(40% 0.01 260)">{{ r.suggestedPromo }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const OUTLETS = [
+  {name:'Outlet Senayan', revenue:187500000, trans:3120, aov:60096, members:842},
+  {name:'Outlet Kemang', revenue:152300000, trans:2680, aov:56828, members:701},
+  {name:'Outlet PIK', revenue:204800000, trans:3410, aov:60059, members:915},
+  {name:'Outlet Bandung', revenue:98600000, trans:1890, aov:52169, members:534},
+  {name:'Outlet Surabaya', revenue:113400000, trans:2210, aov:51312, members:602}
+];
+const TODAY = new Date('2026-08-13');
+function toISO(d){ return d.toISOString().slice(0,10); }
+function daysAgo(n){ const d = new Date(TODAY); d.setDate(d.getDate()-n); return toISO(d); }
+function fmtID(iso){ const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}); }
+const PRODUCTS = [
+  {name:'Iced Kopi Susu', category:'Minuman', qty:2840, revenue:42600000, trend:'naik'},
+  {name:'Nasi Goreng Spesial', category:'Makanan', qty:1920, revenue:57600000, trend:'stagnan'},
+  {name:'Ayam Geprek', category:'Makanan', qty:2210, revenue:55250000, trend:'naik'},
+  {name:'Choco Lava Cake', category:'Dessert', qty:1340, revenue:26800000, trend:'turun'},
+  {name:'Mineral Water', category:'Minuman', qty:3100, revenue:9300000, trend:'stagnan'},
+  {name:'Kentang Goreng', category:'Snack', qty:410, revenue:4100000, trend:'turun'},
+  {name:'Puding Taro', category:'Dessert', qty:280, revenue:4200000, trend:'turun'},
+  {name:'Salad Buah', category:'Snack', qty:190, revenue:2850000, trend:'turun'},
+  {name:'Teh Tarik', category:'Minuman', qty:2500, revenue:20000000, trend:'stagnan'},
+  {name:'Sate Ayam', category:'Makanan', qty:1550, revenue:38750000, trend:'naik'}
+];
+const MEMBER_NEW = [42,38,51,47,60,55,63,58];
+const TOP_MEMBERS = [
+  {name:'Andi Wijaya', outlet:'Outlet Senayan', spending:8420000, visits:34, tier:'Gold'},
+  {name:'Siti Rahma', outlet:'Outlet PIK', spending:7650000, visits:29, tier:'Gold'},
+  {name:'Budi Santoso', outlet:'Outlet Kemang', spending:6980000, visits:31, tier:'Silver'},
+  {name:'Dewi Lestari', outlet:'Outlet Senayan', spending:6420000, visits:26, tier:'Silver'},
+  {name:'Rian Pratama', outlet:'Outlet Bandung', spending:5890000, visits:22, tier:'Silver'},
+  {name:'Maya Putri', outlet:'Outlet Surabaya', spending:5340000, visits:24, tier:'Silver'},
+  {name:'Fajar Nugraha', outlet:'Outlet PIK', spending:4980000, visits:19, tier:'Bronze'},
+  {name:'Lina Marlina', outlet:'Outlet Kemang', spending:4520000, visits:18, tier:'Bronze'}
+];
+const PEAK_HOURS = [
+  {h:'10',c:120},{h:'11',c:180},{h:'12',c:340},{h:'13',c:410},{h:'14',c:290},
+  {h:'15',c:150},{h:'16',c:130},{h:'17',c:160},{h:'18',c:260},{h:'19',c:520},
+  {h:'20',c:610},{h:'21',c:380},{h:'22',c:140}
+];
+const PROMOTIONS = [
+  {name:'Buy 1 Get 1 Kopi', redemptions:1240, upsellPct:32, category:'Minuman', liftPct:28, roi:4.2},
+  {name:'Paket Hemat Nasi Goreng', redemptions:860, upsellPct:24, category:'Makanan', liftPct:19, roi:3.1},
+  {name:'Diskon 20% Dessert', redemptions:410, upsellPct:18, category:'Dessert', liftPct:12, roi:1.8},
+  {name:'Gratis Ongkir Delivery', redemptions:390, upsellPct:9, category:'Semua', liftPct:8, roi:1.4},
+  {name:'Bundling Snack + Minuman', redemptions:150, upsellPct:15, category:'Snack', liftPct:14, roi:2.5},
+  {name:'Member Day Diskon 15%', redemptions:95, upsellPct:6, category:'Semua', liftPct:6, roi:1.1},
+  {name:'Flash Sale Jam Sepi', redemptions:60, upsellPct:4, category:'Semua', liftPct:22, roi:3.6}
+];
+function classifyPromo(p){ return (p.liftPct>=15 && p.roi>=2) ? 'Efektif' : 'Kurang Efektif'; }
+const PROMO_MAP = {
+  Minuman:'Bundling dengan menu utama',
+  Makanan:'Paket combo diskon jam sepi',
+  Dessert:'Diskon dessert after 8PM',
+  Snack:'Cross-sell add-on saat checkout'
+};
+function fmtM(n){ return 'Rp' + (n/1000000).toFixed(1) + 'jt'; }
+function fmtK(n){ return n.toLocaleString('id-ID'); }
+
+class Component extends DCLogic {
+  state = { view:'login', activeTab:'overview', outlet:'Semua Outlet', dateStart: daysAgo(29), dateEnd: toISO(TODAY), category:'Semua Kategori', pickerOpen:false, sidebarOpen:false, takeoutThreshold:300 };
+
+  togglePicker = () => this.setState(s => ({ pickerOpen: !s.pickerOpen }));
+  toggleSidebar = () => this.setState(s => ({ sidebarOpen: !s.sidebarOpen }));
+  setThreshold = (e) => this.setState({ takeoutThreshold: Number(e.target.value) });
+
+  handleLogin = (e) => { e.preventDefault(); this.setState({ view:'dashboard' }); };
+  handleLogout = () => this.setState({ view:'login', activeTab:'overview' });
+  setOutlet = (e) => this.setState({ outlet: e.target.value });
+  setDateStart = (e) => this.setState({ dateStart: e.target.value });
+  setDateEnd = (e) => this.setState({ dateEnd: e.target.value });
+  setCategory = (e) => this.setState({ category: e.target.value });
+  goTab = (tab) => () => this.setState({ activeTab: tab });
+
+  renderVals() {
+    const s = this.state;
+    const spanDays = Math.max(1, Math.round((new Date(s.dateEnd) - new Date(s.dateStart)) / 86400000) + 1);
+    const factor = spanDays / 30;
+    const selOutlets = s.outlet === 'Semua Outlet' ? OUTLETS : OUTLETS.filter(o => o.name === s.outlet);
+    const totalRevenue = selOutlets.reduce((a,o)=>a+o.revenue,0) * factor;
+    const totalTrans = Math.round(selOutlets.reduce((a,o)=>a+o.trans,0) * factor);
+    const totalMembers = selOutlets.reduce((a,o)=>a+o.members,0);
+    const aov = totalTrans ? totalRevenue/totalTrans : 0;
+
+    const trendLen = Math.min(60, spanDays);
+    const trendBars = Array.from({length: trendLen}, (_,i) => {
+      const base = 14000000 + i*150000 + (i%7===5||i%7===6 ? 6000000:0) + Math.sin(i/3)*2000000;
+      return base * (totalRevenue/ (OUTLETS.reduce((a,o)=>a+o.revenue,0)*factor)) * 30;
+    });
+    const maxTrend = Math.max(...trendBars);
+    const trendBarsPct = trendBars.map((v,i) => ({ pct: Math.max(6, Math.round(v/maxTrend*100)), label: 'Hari ' + (i+1) }));
+
+    const maxOutletRev = Math.max(...OUTLETS.map(o=>o.revenue));
+    const outletBars = OUTLETS.map(o => ({ name:o.name, valueLabel: fmtM(o.revenue*factor), pct: Math.round(o.revenue/maxOutletRev*100) }));
+
+    const maxPeak = Math.max(...PEAK_HOURS.map(p=>p.c));
+    const peakBars = PEAK_HOURS.map(p => ({ label:p.h, pct: Math.round(p.c/maxPeak*100) }));
+
+    const filteredProducts = PRODUCTS.filter(p => s.category === 'Semua Kategori' || p.category === s.category);
+    const sortedByRev = [...filteredProducts].sort((a,b)=>b.revenue-a.revenue);
+    const sortedByQty = [...filteredProducts].sort((a,b)=>a.qty-b.qty);
+    const topSellers = sortedByRev.slice(0,5).map(p=>({...p, revenueLabel: fmtM(p.revenue)}));
+    const slowMovers = sortedByQty.slice(0,5).map(p=>({...p, revenueLabel: fmtM(p.revenue)}));
+
+    const totalProductRevenue = PRODUCTS.reduce((a,p)=>a+p.revenue,0);
+    const trendArrow = {naik:'↑ Naik', turun:'↓ Turun', stagnan:'→ Stagnan'};
+    const trendColor = {naik:'#16a34a', turun:'#dc2626', stagnan:'oklch(50% 0.01 260)'};
+    const menuUnderperforming = [...filteredProducts].sort((a,b)=>a.qty-b.qty).map(p => ({
+      name:p.name, category:p.category, qty:fmtK(p.qty),
+      contribution: (p.revenue/totalProductRevenue*100).toFixed(1)+'%',
+      trendLabel: trendArrow[p.trend], trendColor: trendColor[p.trend],
+      isTakeout: p.qty < s.takeoutThreshold,
+      statusLabel: p.qty < s.takeoutThreshold ? 'Kandidat Takeout' : 'Pantau',
+      statusBg: p.qty < s.takeoutThreshold ? 'oklch(93% 0.04 25)' : 'oklch(93% 0.005 260)',
+      statusColor: p.qty < s.takeoutThreshold ? '#dc2626' : 'oklch(45% 0.01 260)'
+    }));
+
+    const sortedByLowestPeak = [...PEAK_HOURS].sort((a,b)=>a.c-b.c).slice(0,2).map(p=>p.h+':00');
+    const worstPromo = [...PROMOTIONS].filter(p=>classifyPromo(p)==='Kurang Efektif').sort((a,b)=>a.roi-b.roi)[0];
+    const bestSeller = [...PRODUCTS].sort((a,b)=>b.revenue-a.revenue)[0];
+    const worstMenu = [...PRODUCTS].sort((a,b)=>a.qty-b.qty)[0];
+    const actionRecommendations = [
+      { type:'Bundling', text: `Bundling "${bestSeller.name}" (laris) dengan "${worstMenu.name}" (slow moving) untuk mendorong penjualan menu yang jarang dibeli.` },
+      { type:'Hentikan/Revisi Promo', text: `Promo "${worstPromo.name}" punya ROI terendah (${worstPromo.roi}x) dan lift hanya +${worstPromo.liftPct}% — pertimbangkan hentikan atau revisi mekanismenya.` },
+      { type:'Waktu Promosi', text: `Buat promo flash sale pada jam sepi (${sortedByLowestPeak.join(' & ')}) untuk mendorong transaksi di luar jam ramai.` }
+    ];
+
+    const promoWithStatus = PROMOTIONS.map(p => ({...p, status: classifyPromo(p), statusColor: classifyPromo(p)==='Efektif' ? '#16a34a' : '#dc2626', statusBg: classifyPromo(p)==='Efektif' ? 'oklch(93% 0.05 150)' : 'oklch(93% 0.04 25)'}));
+
+    const maxNew = Math.max(...MEMBER_NEW);
+    const memberNewBars = MEMBER_NEW.map((v,i) => ({ pct: Math.round(v/maxNew*100), label: 'M'+(i+1) }));
+
+    const activePct = 75, churnPct = 25;
+    const memberRevenuePct = 64;
+
+    const filteredMembers = s.outlet === 'Semua Outlet' ? TOP_MEMBERS : TOP_MEMBERS.filter(m=>m.outlet===s.outlet);
+    const topMembers = filteredMembers.map(m => ({...m, spendingLabel: fmtM(m.spending)}));
+
+    const navDef = [
+      {key:'overview', label:'Overview', shape:'2px'},
+      {key:'sales', label:'Sales', shape:'50%'},
+      {key:'membership', label:'Membership', shape:'50%'},
+      {key:'marketing', label:'Marketing', shape:'2px'}
+    ];
+    const navItems = navDef.map(n => ({
+      label:n.label, shape:n.shape,
+      onClick: () => { this.goTab(n.key)(); this.setState({ sidebarOpen:false }); },
+      color: s.activeTab===n.key ? '#2563eb' : 'oklch(50% 0.01 260)',
+      bg: s.activeTab===n.key ? 'oklch(95% 0.03 255)' : 'transparent',
+      weight: s.activeTab===n.key ? 700 : 500
+    }));
+
+    const titleMap = {overview:'Overview', sales:'Analisa Sales', membership:'Analisa Membership', marketing:'Marketing'};
+
+    return {
+      isLogin: s.view === 'login',
+      isDashboard: s.view === 'dashboard',
+      isOverview: s.activeTab === 'overview',
+      isSales: s.activeTab === 'sales',
+      isMembership: s.activeTab === 'membership',
+      isMarketing: s.activeTab === 'marketing',
+      pageTitle: titleMap[s.activeTab],
+      lastSynced: '13 Agu 2026, 06:00 WIB',
+      handleLogin: this.handleLogin,
+      handleLogout: this.handleLogout,
+      navItems,
+      sidebarOpenClass: s.sidebarOpen ? 'open' : '',
+      toggleSidebar: this.toggleSidebar,
+      outlet: s.outlet, dateStart: s.dateStart, dateEnd: s.dateEnd, today: toISO(TODAY), category: s.category,
+      pickerOpen: s.pickerOpen, togglePicker: this.togglePicker,
+      periodLabel: fmtID(s.dateStart) + ' – ' + fmtID(s.dateEnd),
+      setOutlet: this.setOutlet, setDateStart: this.setDateStart, setDateEnd: this.setDateEnd, setCategory: this.setCategory,
+      outletOptions: ['Semua Outlet', ...OUTLETS.map(o=>o.name)],
+      categoryOptions: ['Semua Kategori','Makanan','Minuman','Dessert','Snack'],
+      overviewKpis: [
+        {label:'Total Revenue', value: fmtM(totalRevenue), delta:'+8.4% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Total Transaksi', value: fmtK(totalTrans), delta:'+5.1% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'AOV', value: 'Rp'+Math.round(aov/1000)+'rb', delta:'+2.3% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Total Member', value: fmtK(totalMembers), delta:'+3.0% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Member Baru', value: fmtK(MEMBER_NEW[MEMBER_NEW.length-1]), delta:'+9.4% vs minggu lalu', deltaColor:'#16a34a'},
+        {label:'Churn Rate', value:'12.4%', delta:'-1.2% vs periode lalu', deltaColor:'#dc2626'}
+      ],
+      salesKpis: [
+        {label:'Total Revenue', value: fmtM(totalRevenue), delta:'+8.4% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Total Transaksi', value: fmtK(totalTrans), delta:'+5.1% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'AOV', value: 'Rp'+Math.round(aov/1000)+'rb', delta:'+2.3% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Peak Hour', value:'20:00', delta:'610 transaksi', deltaColor:'#2563eb'}
+      ],
+      membershipKpis: [
+        {label:'Total Member', value: fmtK(totalMembers), delta:'+3.0% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Member Aktif', value: activePct+'%', delta:'dari total member', deltaColor:'#2563eb'},
+        {label:'Retention Rate', value:'68.5%', delta:'+1.8% vs periode lalu', deltaColor:'#16a34a'},
+        {label:'Frekuensi Kunjungan', value:'3.2x/bulan', delta:'rata-rata per member', deltaColor:'#2563eb'}
+      ],
+      takeoutThreshold: s.takeoutThreshold, setThreshold: this.setThreshold,
+      menuUnderperforming, actionRecommendations, promoWithStatus,
+      promoKpis: [
+        {label:'Total Redemption', value: fmtK(PROMOTIONS.reduce((a,p)=>a+p.redemptions,0)), delta:'seluruh promo aktif', deltaColor:'#2563eb'},
+        {label:'Promo Terbaik', value: PROMOTIONS[0].name, delta:'+'+PROMOTIONS[0].upsellPct+'% upsell', deltaColor:'#16a34a'},
+        {label:'Promo Perlu Ditinjau', value: [...PROMOTIONS].sort((a,b)=>a.redemptions-b.redemptions)[0].name, delta:'redemption terendah', deltaColor:'#dc2626'}
+      ],
+      topPromos: [...PROMOTIONS].sort((a,b)=>b.upsellPct-a.upsellPct).slice(0,3),
+      leastPromos: [...PROMOTIONS].sort((a,b)=>a.redemptions-b.redemptions).slice(0,3),
+      menuRecommendations: [...PRODUCTS].sort((a,b)=>a.qty-b.qty).slice(0,4).map(p => {
+        const takeout = p.qty < 300;
+        return {
+          name: p.name, category: p.category, qty: fmtK(p.qty),
+          action: takeout ? 'Pertimbangkan Takeout' : 'Pertahankan + Promo',
+          actionBg: takeout ? 'oklch(93% 0.04 25)' : 'oklch(93% 0.04 255)',
+          actionColor: takeout ? '#dc2626' : '#2563eb',
+          suggestedPromo: PROMO_MAP[p.category] || 'Bundling lintas kategori'
+        };
+      }),
+      trendBars: trendBarsPct,
+      outletBars,
+      peakBars,
+      topSellers, slowMovers,
+      memberNewBars,
+      revenueDonutStyle: `conic-gradient(#2563eb 0% ${memberRevenuePct}%, oklch(90% 0.005 260) ${memberRevenuePct}% 100%)`,
+      memberRevenuePct,
+      activeDonutStyle: `conic-gradient(#2563eb 0% ${activePct}%, oklch(90% 0.005 260) ${activePct}% 100%)`,
+      churnRateLabel: churnPct + '%',
+      topMembers
+    };
+  }
+}
+</script>
+</body>
+</html>
