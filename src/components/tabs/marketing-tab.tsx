@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ALL_CATEGORIES, useDashboardFilters } from "@/lib/use-dashboard-filters";
+import { ALL_CATEGORIES, ALL_CATEGORY_DETAILS, useDashboardFilters } from "@/lib/use-dashboard-filters";
 import { getMenuPerformance, getProductAggregates, getSalesHourlyOutlet } from "@/lib/queries/sales";
 import { getPromoPerformance } from "@/lib/queries/marketing";
 import { groupByHour } from "@/lib/aggregate";
@@ -21,12 +21,12 @@ export function MarketingTab() {
     queryFn: () => getPromoPerformance(dateStart, dateEnd, outlet),
   });
   const productsQuery = useQuery({
-    queryKey: ["product-aggregates", outlet, ALL_CATEGORIES, dateStart, dateEnd],
-    queryFn: () => getProductAggregates(dateStart, dateEnd, outlet, ALL_CATEGORIES),
+    queryKey: ["product-aggregates", outlet, ALL_CATEGORIES, ALL_CATEGORY_DETAILS, dateStart, dateEnd],
+    queryFn: () => getProductAggregates(dateStart, dateEnd, outlet, ALL_CATEGORIES, ALL_CATEGORY_DETAILS),
   });
   const menuPerfQuery = useQuery({
-    queryKey: ["menu-performance", outlet, ALL_CATEGORIES, dateStart, dateEnd, MARKETING_THRESHOLD],
-    queryFn: () => getMenuPerformance(dateStart, dateEnd, outlet, ALL_CATEGORIES, MARKETING_THRESHOLD),
+    queryKey: ["menu-performance", outlet, ALL_CATEGORIES, ALL_CATEGORY_DETAILS, dateStart, dateEnd, MARKETING_THRESHOLD],
+    queryFn: () => getMenuPerformance(dateStart, dateEnd, outlet, ALL_CATEGORIES, ALL_CATEGORY_DETAILS, MARKETING_THRESHOLD),
   });
   const hourlyQuery = useQuery({
     queryKey: ["sales-hourly", outlet, dateStart, dateEnd],

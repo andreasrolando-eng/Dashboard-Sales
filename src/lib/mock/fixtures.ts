@@ -12,17 +12,21 @@ export const OUTLETS = [
   { branch_code: "SBY", branch_name: "Outlet Surabaya" },
 ];
 
+// category_id/category_detail_id are the filter keys (mirror ESB
+// menuCategoryID/menuCategoryDetailID); category/category_detail are just
+// the display labels for those IDs, same split as
+// v_categories/v_category_details/v_sales_product_daily.
 export const PRODUCTS = [
-  { menu_id: "P1", menu_name: "Iced Kopi Susu", category: "Minuman", basePrice: 15000, baseQty: 95 },
-  { menu_id: "P2", menu_name: "Nasi Goreng Spesial", category: "Makanan", basePrice: 30000, baseQty: 64 },
-  { menu_id: "P3", menu_name: "Ayam Geprek", category: "Makanan", basePrice: 25000, baseQty: 74 },
-  { menu_id: "P4", menu_name: "Choco Lava Cake", category: "Dessert", basePrice: 20000, baseQty: 45 },
-  { menu_id: "P5", menu_name: "Mineral Water", category: "Minuman", basePrice: 3000, baseQty: 103 },
-  { menu_id: "P6", menu_name: "Kentang Goreng", category: "Snack", basePrice: 10000, baseQty: 14 },
-  { menu_id: "P7", menu_name: "Puding Taro", category: "Dessert", basePrice: 15000, baseQty: 9 },
-  { menu_id: "P8", menu_name: "Salad Buah", category: "Snack", basePrice: 15000, baseQty: 6 },
-  { menu_id: "P9", menu_name: "Teh Tarik", category: "Minuman", basePrice: 8000, baseQty: 83 },
-  { menu_id: "P10", menu_name: "Sate Ayam", category: "Makanan", basePrice: 25000, baseQty: 52 },
+  { menu_id: "P1", menu_name: "Iced Kopi Susu", category_id: "C-MIN", category: "Minuman", category_detail_id: "D-KOPI", category_detail: "Kopi", basePrice: 15000, baseQty: 95 },
+  { menu_id: "P2", menu_name: "Nasi Goreng Spesial", category_id: "C-MKN", category: "Makanan", category_detail_id: "D-NASGOR", category_detail: "Nasi Goreng", basePrice: 30000, baseQty: 64 },
+  { menu_id: "P3", menu_name: "Ayam Geprek", category_id: "C-MKN", category: "Makanan", category_detail_id: "D-AYAM", category_detail: "Ayam", basePrice: 25000, baseQty: 74 },
+  { menu_id: "P4", menu_name: "Choco Lava Cake", category_id: "C-DES", category: "Dessert", category_detail_id: "D-CAKE", category_detail: "Cake", basePrice: 20000, baseQty: 45 },
+  { menu_id: "P5", menu_name: "Mineral Water", category_id: "C-MIN", category: "Minuman", category_detail_id: "D-AIR", category_detail: "Air Mineral", basePrice: 3000, baseQty: 103 },
+  { menu_id: "P6", menu_name: "Kentang Goreng", category_id: "C-SNK", category: "Snack", category_detail_id: "D-GORENGAN", category_detail: "Gorengan", basePrice: 10000, baseQty: 14 },
+  { menu_id: "P7", menu_name: "Puding Taro", category_id: "C-DES", category: "Dessert", category_detail_id: "D-PUDING", category_detail: "Puding", basePrice: 15000, baseQty: 9 },
+  { menu_id: "P8", menu_name: "Salad Buah", category_id: "C-SNK", category: "Snack", category_detail_id: "D-SALAD", category_detail: "Salad", basePrice: 15000, baseQty: 6 },
+  { menu_id: "P9", menu_name: "Teh Tarik", category_id: "C-MIN", category: "Minuman", category_detail_id: "D-TEH", category_detail: "Teh", basePrice: 8000, baseQty: 83 },
+  { menu_id: "P10", menu_name: "Sate Ayam", category_id: "C-MKN", category: "Makanan", category_detail_id: "D-AYAM", category_detail: "Ayam", basePrice: 25000, baseQty: 52 },
 ];
 
 export const MEMBERS = [

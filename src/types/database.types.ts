@@ -47,9 +47,32 @@ export interface Database {
           branch_code: string;
           menu_id: string;
           menu_name: string | null;
+          category_id: string | null;
           category: string | null;
           qty: number | null;
           revenue: number | null;
+          category_detail_id: string | null;
+          category_detail: string | null;
+        };
+        Relationships: [];
+      };
+      v_sales_daily_outlet_category: {
+        Row: {
+          sales_date: string;
+          branch_code: string;
+          category_id: string | null;
+          category_detail_id: string | null;
+          revenue: number | null;
+          nett_sales: number | null;
+        };
+        Relationships: [];
+      };
+      v_sales_bills: {
+        Row: {
+          bill_num: string;
+          sales_date: string;
+          branch_code: string;
+          grand_total: number | null;
         };
         Relationships: [];
       };
@@ -70,7 +93,11 @@ export interface Database {
         Relationships: [];
       };
       v_categories: {
-        Row: { category: string | null };
+        Row: { category_id: string | null; category_name: string | null };
+        Relationships: [];
+      };
+      v_category_details: {
+        Row: { category_detail_id: string | null; category_detail_name: string | null; category_id: string | null };
         Relationships: [];
       };
       v_member_visits_daily: {
@@ -105,6 +132,18 @@ export interface Database {
         Row: { week_start: string; new_members: number | null };
         Relationships: [];
       };
+      v_member_menu_daily: {
+        Row: {
+          member_code: string;
+          sales_date: string;
+          branch_code: string;
+          menu_id: string;
+          menu_name: string | null;
+          qty: number | null;
+          revenue: number | null;
+        };
+        Relationships: [];
+      };
       v_last_sync: {
         Row: {
           job_name: string;
@@ -121,13 +160,15 @@ export interface Database {
           p_date_start: string;
           p_date_end: string;
           p_outlet?: string | null;
-          p_category?: string | null;
+          p_category_id?: string | null;
+          p_category_detail_id?: string | null;
           p_threshold?: number;
         };
         Returns: {
           menu_id: string;
           menu_name: string | null;
           category: string | null;
+          category_detail: string | null;
           qty: number;
           revenue: number;
           contribution_pct: number | null;
@@ -173,6 +214,22 @@ export interface Database {
           tier: string | null;
           visits: number;
           spending: number;
+          favorite_menu: string | null;
+        }[];
+      };
+      fn_member_menu_purchases: {
+        Args: {
+          p_member_code: string;
+          p_date_start: string;
+          p_date_end: string;
+          p_outlet?: string | null;
+        };
+        Returns: {
+          menu_id: string;
+          menu_name: string | null;
+          qty: number;
+          revenue: number;
+          last_purchase_date: string | null;
         }[];
       };
     };

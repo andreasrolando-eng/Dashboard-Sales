@@ -8,6 +8,8 @@ export const CHART_COLORS = {
   negative: "#dc2626",
   track: "oklch(93% 0.005 260)",
   trackInactive: "oklch(90% 0.005 260)",
+  text: "oklch(22% 0.01 260)",
+  textSecondary: "oklch(50% 0.01 260)",
   textTertiary: "oklch(55% 0.01 260)",
   border: "oklch(91% 0.005 260)",
 } as const;

@@ -10,6 +10,7 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { Badge } from "@/components/ui/badge";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
 import { Donut } from "@/components/charts/donut";
+import { MemberMenuReportPanel } from "./member-menu-report-panel";
 
 export function MembershipTab() {
   const { outlet, dateStart, dateEnd } = useDashboardFilters();
@@ -87,18 +88,19 @@ export function MembershipTab() {
 
       <div className="bg-surface border border-border rounded-[14px] p-5 overflow-x-auto">
         <div className="text-sm font-bold text-text mb-3.5">Top Member by Spending</div>
-        <div className="min-w-[520px]">
-          <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr] text-[11px] font-semibold text-text-secondary pb-2.5 px-1 border-b border-border-subtle">
+        <div className="min-w-[620px]">
+          <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1.4fr] text-[11px] font-semibold text-text-secondary pb-2.5 px-1 border-b border-border-subtle">
             <div>Nama</div>
             <div>Outlet</div>
             <div>Tier</div>
             <div>Kunjungan</div>
             <div>Total Spending</div>
+            <div>Menu Favorit</div>
           </div>
           {topMembersQuery.data.map((m) => (
             <div
               key={m.member_code}
-              className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr] text-[13px] py-[11px] px-1 border-b border-border-hairline items-center"
+              className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1.4fr] text-[13px] py-[11px] px-1 border-b border-border-hairline items-center"
             >
               <div className="font-semibold text-text">{m.member_name}</div>
               <div className="text-text-secondary">{m.outlet_name}</div>
@@ -109,10 +111,13 @@ export function MembershipTab() {
               </div>
               <div>{fmtNum(m.visits)}</div>
               <div className="font-bold text-text">{fmtRupiah(m.spending)}</div>
+              <div className="text-text-secondary">{m.favorite_menu ?? "-"}</div>
             </div>
           ))}
         </div>
       </div>
+
+      <MemberMenuReportPanel key={`${outlet}|${dateStart}|${dateEnd}`} outlet={outlet} dateStart={dateStart} dateEnd={dateEnd} />
     </>
   );
 }

@@ -1,20 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useDashboardFilters, ALL_OUTLETS } from "@/lib/use-dashboard-filters";
-import { getProductAggregates, getSalesDailyOutlet, getSalesHourlyOutlet } from "@/lib/queries/sales";
+import { useDashboardFilters, ALL_OUTLETS, ALL_CATEGORIES, ALL_CATEGORY_DETAILS } from "@/lib/use-dashboard-filters";
+import { getProductAggregates, getSalesDailyOutlet, getSalesHourlyOutlet, getSalesRevenueByCategory } from "@/lib/queries/sales";
 import { getOutletOptions } from "@/lib/queries/meta";
 import { groupByHour, groupRevenueByDate, groupRevenueByOutlet, sumSalesDaily } from "@/lib/aggregate";
 import { getPreviousPeriod, pctDelta, deltaLabel } from "@/lib/period";
-import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
+import { fmtDateFullID, fmtNum, fmtRupiah } from "@/lib/format";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartCard } from "@/components/ui/chart-card";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
 import { OutletBarList } from "@/components/charts/outlet-bar-list";
 import { MenuUnderperformingPanel } from "./menu-underperforming-panel";
+import { SalesBillListPanel } from "./sales-bill-list-panel";
 
 export function SalesTab() {
-  const { outlet, category, dateStart, dateEnd } = useDashboardFilters();
+  const { outlet, category, categoryDetail, dateStart, dateEnd } = useDashboardFilters();
   const { prevStart, prevEnd } = getPreviousPeriod(dateStart, dateEnd);
 
   const currentQuery = useQuery({
@@ -35,9 +36,44 @@ export function SalesTab() {
     queryFn: () => getSalesHourlyOutlet(dateStart, dateEnd, outlet),
   });
   const productsQuery = useQuery({
-    queryKey: ["product-aggregates", outlet, category, dateStart, dateEnd],
-    queryFn: () => getProductAggregates(dateStart, dateEnd, outlet, category),
+    queryKey: ["product-aggregates", outlet, category, categoryDetail, dateStart, dateEnd],
+    queryFn: () => getProductAggregates(dateStart, dateEnd, outlet, category, categoryDetail),
   });
+
+  // Total Revenue/Nett Sales only switch to the category-scoped source once
+  // a category/categoryDetail filter is actually picked -- keeps the
+  // default "Semua Kategori" numbers identical to today's (transaction-grain
+  // sum(grand_total)), since the category-scoped view sums item-line totals
+  // instead, which isn't guaranteed to match to the rupiah.
+  const categoryActive = category !== ALL_CATEGORIES || categoryDetail !== ALL_CATEGORY_DETAILS;
+  const categoryRevenueQuery = useQuery({
+    queryKey: ["sales-revenue-category", outlet, category, categoryDetail, dateStart, dateEnd],
+    queryFn: () => getSalesRevenueByCategory(dateStart, dateEnd, outlet, category, categoryDetail),
+    enabled: categoryActive,
+  });
+  const categoryRevenuePrevQuery = useQuery({
+    queryKey: ["sales-revenue-category", outlet, category, categoryDetail, prevStart, prevEnd],
+    queryFn: () => getSalesRevenueByCategory(prevStart, prevEnd, outlet, category, categoryDetail),
+    enabled: categoryActive,
+  });
+
+  const queries = [
+    currentQuery,
+    previousQuery,
+    allOutletsQuery,
+    outletOptionsQuery,
+    hourlyQuery,
+    productsQuery,
+    ...(categoryActive ? [categoryRevenueQuery, categoryRevenuePrevQuery] : []),
+  ];
+  const failedQuery = queries.find((q) => q.isError);
+  if (failedQuery) {
+    return (
+      <div className="text-sm text-[#dc2626]">
+        Gagal memuat data: {failedQuery.error instanceof Error ? failedQuery.error.message : "Terjadi kesalahan tak terduga"}
+      </div>
+    );
+  }
 
   if (
     !currentQuery.data ||
@@ -45,7 +81,8 @@ export function SalesTab() {
     !allOutletsQuery.data ||
     !outletOptionsQuery.data ||
     !hourlyQuery.data ||
-    !productsQuery.data
+    !productsQuery.data ||
+    (categoryActive && (!categoryRevenueQuery.data || !categoryRevenuePrevQuery.data))
   ) {
     return <div className="text-sm text-text-secondary">Memuat data...</div>;
   }
@@ -54,6 +91,11 @@ export function SalesTab() {
   const previous = sumSalesDaily(previousQuery.data);
   const aov = current.trans_count ? current.revenue / current.trans_count : 0;
   const prevAov = previous.trans_count ? previous.revenue / previous.trans_count : 0;
+
+  const displayRevenue = categoryActive ? categoryRevenueQuery.data!.revenue : current.revenue;
+  const displayRevenuePrev = categoryActive ? categoryRevenuePrevQuery.data!.revenue : previous.revenue;
+  const displayNettSales = categoryActive ? categoryRevenueQuery.data!.nett_sales : current.nett_sales;
+  const displayNettSalesPrev = categoryActive ? categoryRevenuePrevQuery.data!.nett_sales : previous.nett_sales;
 
   const trendBars = groupRevenueByDate(currentQuery.data).map((d) => ({ label: d.date, value: d.revenue }));
   const outletBars = groupRevenueByOutlet(allOutletsQuery.data, outletOptionsQuery.data);
@@ -71,13 +113,13 @@ export function SalesTab() {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Total Revenue"
-          value={fmtRupiah(current.revenue)}
-          {...deltaLabel(pctDelta(current.revenue, previous.revenue))}
+          value={fmtRupiah(displayRevenue)}
+          {...deltaLabel(pctDelta(displayRevenue, displayRevenuePrev))}
         />
         <KpiCard
           label="Nett Sales"
-          value={fmtRupiah(current.nett_sales)}
-          {...deltaLabel(pctDelta(current.nett_sales, previous.nett_sales))}
+          value={fmtRupiah(displayNettSales)}
+          {...deltaLabel(pctDelta(displayNettSales, displayNettSalesPrev))}
         />
         <KpiCard
           label="Total Transaksi"
@@ -95,7 +137,7 @@ export function SalesTab() {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5 mb-4">
         <ChartCard title="Tren Revenue" fullWidth>
-          <SimpleBarChart data={trendBars} valueFormatter={fmtRupiah} labelFormatter={fmtDateID} />
+          <SimpleBarChart data={trendBars} height={220} dateAxis valueFormatter={fmtRupiah} labelFormatter={fmtDateFullID} />
         </ChartCard>
 
         <ChartCard title="Distribusi Peak Hour">
@@ -122,12 +164,24 @@ export function SalesTab() {
         </ChartCard>
       </div>
 
-      <MenuUnderperformingPanel outlet={outlet} category={category} dateStart={dateStart} dateEnd={dateEnd} />
+      <MenuUnderperformingPanel
+        outlet={outlet}
+        category={category}
+        categoryDetail={categoryDetail}
+        dateStart={dateStart}
+        dateEnd={dateEnd}
+      />
+
+      <SalesBillListPanel key={`${outlet}|${dateStart}|${dateEnd}`} outlet={outlet} dateStart={dateStart} dateEnd={dateEnd} />
     </>
   );
 }
 
-function ProductList({ products }: { products: { menu_id: string; menu_name: string | null; category: string | null; qty: number; revenue: number }[] }) {
+function ProductList({
+  products,
+}: {
+  products: { menu_id: string; menu_name: string | null; category: string | null; category_detail: string | null; qty: number; revenue: number }[];
+}) {
   return (
     <div>
       {products.map((p) => (
@@ -135,7 +189,8 @@ function ProductList({ products }: { products: { menu_id: string; menu_name: str
           <div>
             <div className="text-[13px] font-semibold text-text">{p.menu_name}</div>
             <div className="text-[11px] text-text-tertiary">
-              {p.category} · {fmtNum(p.qty)} terjual
+              {p.category}
+              {p.category_detail ? ` › ${p.category_detail}` : ""} · {fmtNum(p.qty)} terjual
             </div>
           </div>
           <div className="text-[13px] font-bold text-text">{fmtRupiah(p.revenue)}</div>

@@ -26,11 +26,13 @@ type Limit = (typeof LIMIT_OPTIONS)[number] | typeof SHOW_ALL;
 export function MenuUnderperformingPanel({
   outlet,
   category,
+  categoryDetail,
   dateStart,
   dateEnd,
 }: {
   outlet: string;
   category: string;
+  categoryDetail: string;
   dateStart: string;
   dateEnd: string;
 }) {
@@ -39,8 +41,8 @@ export function MenuUnderperformingPanel({
   const [applied, setApplied] = useState<{ threshold: number; limit: Limit }>({ threshold: 100, limit: 10 });
 
   const menuPerfQuery = useQuery({
-    queryKey: ["menu-performance", outlet, category, dateStart, dateEnd, applied.threshold],
-    queryFn: () => getMenuPerformance(dateStart, dateEnd, outlet, category, applied.threshold),
+    queryKey: ["menu-performance", outlet, category, categoryDetail, dateStart, dateEnd, applied.threshold],
+    queryFn: () => getMenuPerformance(dateStart, dateEnd, outlet, category, categoryDetail, applied.threshold),
   });
 
   const rows = !menuPerfQuery.data

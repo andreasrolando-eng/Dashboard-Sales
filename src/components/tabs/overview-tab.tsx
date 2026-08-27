@@ -7,7 +7,7 @@ import { getMembershipSummary, getMembershipNewWeekly } from "@/lib/queries/memb
 import { getOutletOptions } from "@/lib/queries/meta";
 import { groupRevenueByDate, groupRevenueByOutlet, sumSalesDaily } from "@/lib/aggregate";
 import { getPreviousPeriod, pctDelta, deltaLabel } from "@/lib/period";
-import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
+import { fmtDateFullID, fmtNum, fmtRupiah } from "@/lib/format";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartCard } from "@/components/ui/chart-card";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
@@ -108,7 +108,7 @@ export function OverviewTab() {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5">
         <ChartCard title="Tren Revenue Harian" fullWidth>
-          <SimpleBarChart data={trendBars} valueFormatter={fmtRupiah} labelFormatter={fmtDateID} />
+          <SimpleBarChart data={trendBars} height={220} dateAxis valueFormatter={fmtRupiah} labelFormatter={fmtDateFullID} />
         </ChartCard>
 
         <ChartCard title="Revenue per Outlet">
