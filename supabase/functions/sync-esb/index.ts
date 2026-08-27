@@ -13,10 +13,52 @@ const JOB_NAME = "sync-esb";
 // execution time limit. Large backfills should be done in a few calls.
 const MAX_DAYS_PER_REQUEST = 31;
 
-function yesterday(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
+// The business (and every date in the dashboard) runs on WIB = UTC+7, while
+// the cron fires at 23:00 UTC. A plain UTC "yesterday" at that instant is
+// TWO days back in WIB, so the nightly run would silently sync a stale date
+// and yesterday's data would never appear until the following night.
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+function yesterdayWIB(): string {
+  return new Date(Date.now() + WIB_OFFSET_MS - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+// Gateway JWT verification is OFF for this function (see
+// `[functions.sync-esb] verify_jwt = false` in supabase/config.toml), because
+// it proved flaky for the long-lived static token the cron job had to send --
+// the gateway rejected it with 401 UNAUTHORIZED_INVALID_JWT_FORMAT before any
+// of this code ran, which is invisible in `cron.job_run_details` and cost
+// several days of un-synced data twice. Auth is therefore enforced HERE, and
+// this function must never be deployed without it.
+const SYNC_SHARED_SECRET = Deno.env.get("SYNC_SHARED_SECRET") ?? "";
+
+function secretMatches(provided: string | null): boolean {
+  if (!SYNC_SHARED_SECRET || !provided || provided.length !== SYNC_SHARED_SECRET.length) return false;
+  let diff = 0;
+  for (let i = 0; i < provided.length; i += 1) {
+    diff |= provided.charCodeAt(i) ^ SYNC_SHARED_SECRET.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
+ * Two callers, two credentials:
+ * - cron (pg_net) sends `x-sync-secret`, read from the `sync_esb_shared_secret`
+ *   vault secret -- a plain string, so nothing about it can expire or be
+ *   re-validated by the gateway.
+ * - the dashboard's "Sync Manual" button sends a logged-in user's session JWT,
+ *   which we verify ourselves now that the gateway no longer does.
+ */
+async function isAuthorized(req: Request, client: SupabaseClient): Promise<boolean> {
+  if (secretMatches(req.headers.get("x-sync-secret"))) return true;
+
+  const header = req.headers.get("Authorization") ?? "";
+  const token = /^bearer /i.test(header) ? header.slice(7).trim() : "";
+  if (!token) return false;
+  if (secretMatches(token)) return true;
+
+  const { data, error } = await client.auth.getUser(token);
+  return !error && !!data.user;
 }
 
 function dateRange(from: string, to: string): string[] {
@@ -103,9 +145,17 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Body shapes: {date} for a single day (cron always sends {trigger:'cron'},
-  // which falls through to "yesterday"), or {dateFrom, dateTo} for a range
-  // (the dashboard's manual sync button).
+  if (!(await isAuthorized(req, client))) {
+    console.error("sync-esb: unauthorized request rejected");
+    return Response.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401, headers: corsHeaders }
+    );
+  }
+
+  // Body shapes: {date} for a single day (the cron job sends an explicit
+  // WIB-derived date; the `yesterdayWIB()` fallback only covers a bare
+  // trigger), or {dateFrom, dateTo} for a range (the manual sync button).
   let dates: string[];
   const body = await req.json().catch(() => ({}));
   if (typeof body?.dateFrom === "string" && typeof body?.dateTo === "string") {
@@ -113,7 +163,7 @@ Deno.serve(async (req) => {
   } else if (typeof body?.date === "string") {
     dates = [body.date];
   } else {
-    dates = [yesterday()];
+    dates = [yesterdayWIB()];
   }
 
   if (dates.length === 0) {

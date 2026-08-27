@@ -14,7 +14,7 @@ Project is linked to a live Supabase project (`giyspsmyitlygujelqjd`) with all m
 
 1. ~~**ESB request contract.**~~ Resolved — `supabase/functions/sync-esb/esb-client.ts` now uses the confirmed real endpoint (`{ESB_API_BASE_URL}/corev1/sales/sales-information`), Bearer auth, and the real `salesDateFrom`/`salesDateTo`/`page`/`sortBy`/`sortOrder` params. `ESB_API_BASE_URL`/`ESB_API_KEY` secrets are set; deploy with `npx supabase functions deploy sync-esb` to pick them up.
 2. **Membership profile endpoint.** No sample was available for ESB's membership endpoint, so `supabase/functions/sync-esb/membership.ts` is a feature-flagged stub (`ESB_MEMBERSHIP_ENDPOINT` unset = no-op). Membership *analytics* (visits, spending, retention, new members, tier) already work off `memberCode`/`memberName` on sales records with a spending-bracket tier fallback — only `raw_members.tier`/`join_date` accuracy improves once this is wired.
-3. **Cron job auth.** The `sync-esb-daily` cron job needs the `sync_esb_service_key` Vault secret created once via SQL editor (see §3 below) before its scheduled runs will succeed — check `select * from cron.job_run_details` if the daily sync doesn't show up in `sync_log`.
+3. ~~**Cron job auth.**~~ Resolved — reworked and deployed 27 Aug 2026 after three multi-day sync outages (see `supabase/migrations/20260827090000_cron_hardening.sql`). The job no longer sends a JWT; it sends an `x-sync-secret` header checked inside the Edge Function, and `verify_jwt` is off for `sync-esb`. Requires the `SYNC_SHARED_SECRET` function secret and the `sync_esb_shared_secret` Vault secret to hold the **same** value — see §3 below. Diagnose with `select * from sync_dispatch order by id desc`, not `cron.job_run_details` (which only proves the SQL dispatched, never that the HTTP call succeeded).
 
 ## Setup
 
@@ -44,17 +44,31 @@ npx supabase functions deploy sync-esb
 npx supabase secrets set ESB_API_BASE_URL=... ESB_API_KEY=... HEALTHCHECKS_PING_URL=...
 ```
 
-Then, in the Supabase SQL editor of your linked project (not a committed migration, since it's a secret):
-
-```sql
-select vault.create_secret('<service-role-key>', 'sync_esb_service_key');
-```
-
-The migration already has the project ref hardcoded in the `net.http_post` URL, so as long as the vault secret above exists, the cron job (scheduled by `db push` earlier) will work on its next run. If the migration ran *before* the vault secret existed, editing the file and `db push`-ing again won't fix it -- the CLI tracks it as already-applied and skips it. In that case, run the `cron.schedule(...)` block from that file directly in the SQL editor once (it's idempotent by job name) to update the live job. This schedules the daily 06:00 WIB sync (FR-1/FR-2). Test the function itself manually first, independent of cron:
+Then pick one random string and set it in **both** places — the cron job sends it as `x-sync-secret`, the function compares against it, and they must match byte-for-byte:
 
 ```bash
-npx supabase functions invoke sync-esb --body '{"date":"2026-08-01"}'
+npx supabase secrets set SYNC_SHARED_SECRET='<random-string>'
 ```
+
+```sql
+-- Supabase SQL editor (not a committed migration, since it's a secret):
+select vault.create_secret('<random-string>', 'sync_esb_shared_secret');
+```
+
+Deploy the function **before** pushing `20260827090000_cron_hardening.sql`: that migration stops sending the `Authorization` header the old gateway check wanted, so an un-redeployed function would reject every cron call.
+
+Order matters for a second reason too — editing an *already-applied* migration and re-running `db push` does nothing (the CLI tracks it as applied and skips it). Live cron changes must either come in a new migration file or be run directly in the SQL editor.
+
+The schedule this creates: daily sync at 06:00 WIB (FR-1/FR-2), a catch-up re-sync of the last 3 days at 10:00 WIB so one failed night self-heals, and a reconcile job every 10 min that copies pg_net's HTTP result into `sync_dispatch` before pg_net prunes it. Test the function itself manually first, independent of cron:
+
+```bash
+curl -sS -X POST 'https://<project-ref>.supabase.co/functions/v1/sync-esb' \
+  -H 'Content-Type: application/json' \
+  -H 'x-sync-secret: <random-string>' \
+  -d '{"date":"2026-08-01"}'
+```
+
+`npx supabase functions invoke` won't work for this function any more — it sends an anon/service key as `Authorization`, and the in-function guard only accepts the shared secret or a real logged-in user's session JWT. Use curl with the header above, which is exactly what the cron job sends.
 
 Check `sync_log` for the run, and set up a healthchecks.io check pointed at `HEALTHCHECKS_PING_URL` for FR-5's failure alerting.
 

@@ -1,3 +1,10 @@
+-- SUPERSEDED by 20260827090000_cron_hardening.sql, which unschedules the job
+-- created here and replaces it. The `Authorization: Bearer <service_role JWT>`
+-- header below is exactly what broke: the Function Gateway rejected it with
+-- 401 UNAUTHORIZED_INVALID_JWT_FORMAT, twice, for days at a time. Kept only
+-- because it is already applied and migrations are append-only -- do not
+-- re-run this block in the SQL editor.
+--
 -- Daily schedule for the sync-esb Edge Function (PRD §8, FR-1/FR-2).
 --
 -- MANUAL STEP REQUIRED BEFORE THIS TAKES EFFECT (do this once in the

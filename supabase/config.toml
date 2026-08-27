@@ -385,6 +385,17 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# The cron job has to authenticate with a long-lived static token, and the
+# gateway's JWT verification rejected that token intermittently (401
+# UNAUTHORIZED_INVALID_JWT_FORMAT) before the function's own code ever ran --
+# twice, costing days of un-synced data. Auth is enforced inside the function
+# instead (shared secret for cron, verified session JWT for the dashboard
+# button); see the guard in supabase/functions/sync-esb/index.ts. Deploy the
+# function BEFORE applying the cron migration that stops sending Authorization.
+[functions.sync-esb]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
