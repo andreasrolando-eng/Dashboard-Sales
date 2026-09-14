@@ -8,6 +8,14 @@ export function fmtRupiah(n: number): string {
   return `Rp${Math.round(n).toLocaleString("id-ID")}`;
 }
 
+/** "1j 40m" for >=60min, "45m" below that. `minutes` may be 0/negative (no samples) -- returns "0m". */
+export function fmtDurationMin(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? `${h}j ${m}m` : `${m}m`;
+}
+
 /** "13 Agu 2026" */
 export function fmtDateID(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", {

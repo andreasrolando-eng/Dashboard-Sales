@@ -6,6 +6,7 @@ import { ALL_CATEGORIES, ALL_CATEGORY_DETAILS, ALL_OUTLETS, useDashboardFilters 
 import { getCategoryDetailOptions, getCategoryOptions, getOutletOptions } from "@/lib/queries/meta";
 import { daysAgoLocalISO, firstOfMonthISO, fmtDateDMY, todayLocalISO } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const WEEKDAYS_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
@@ -350,14 +351,15 @@ export function FilterBar() {
 
   return (
     <div className="flex flex-wrap gap-2.5 mb-6">
-      <select value={outlet} onChange={(e) => setOutlet(e.target.value)} className={selectClass}>
-        <option value={ALL_OUTLETS}>{ALL_OUTLETS}</option>
-        {outlets?.map((o) => (
-          <option key={o.branch_code} value={o.branch_code}>
-            {o.branch_name}
-          </option>
-        ))}
-      </select>
+      <Dropdown
+        value={outlet}
+        onChange={setOutlet}
+        className={selectClass}
+        options={[
+          { value: ALL_OUTLETS, label: ALL_OUTLETS },
+          ...(outlets?.map((o) => ({ value: o.branch_code, label: o.branch_name })) ?? []),
+        ]}
+      />
 
       <div className="relative" ref={containerRef}>
         <div
@@ -425,29 +427,29 @@ export function FilterBar() {
 
       {categoryFilterVisible && (
         <>
-          <select value={category} onChange={(e) => handleCategoryChange(e.target.value)} className={selectClass}>
-            <option value={ALL_CATEGORIES}>{ALL_CATEGORIES}</option>
-            {categories?.map(
-              (c) =>
-                c.category_id && (
-                  <option key={c.category_id} value={c.category_id}>
-                    {c.category_name}
-                  </option>
-                )
-            )}
-          </select>
+          <Dropdown
+            value={category}
+            onChange={handleCategoryChange}
+            className={selectClass}
+            options={[
+              { value: ALL_CATEGORIES, label: ALL_CATEGORIES },
+              ...(categories
+                ?.filter((c) => c.category_id)
+                .map((c) => ({ value: c.category_id!, label: c.category_name })) ?? []),
+            ]}
+          />
 
-          <select value={categoryDetail} onChange={(e) => setCategoryDetail(e.target.value)} className={selectClass}>
-            <option value={ALL_CATEGORY_DETAILS}>{ALL_CATEGORY_DETAILS}</option>
-            {categoryDetailOptions?.map(
-              (c) =>
-                c.category_detail_id && (
-                  <option key={c.category_detail_id} value={c.category_detail_id}>
-                    {c.category_detail_name}
-                  </option>
-                )
-            )}
-          </select>
+          <Dropdown
+            value={categoryDetail}
+            onChange={setCategoryDetail}
+            className={selectClass}
+            options={[
+              { value: ALL_CATEGORY_DETAILS, label: ALL_CATEGORY_DETAILS },
+              ...(categoryDetailOptions
+                ?.filter((c) => c.category_detail_id)
+                .map((c) => ({ value: c.category_detail_id!, label: c.category_detail_name })) ?? []),
+            ]}
+          />
         </>
       )}
     </div>

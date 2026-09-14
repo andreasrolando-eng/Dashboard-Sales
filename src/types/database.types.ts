@@ -76,6 +76,44 @@ export interface Database {
         };
         Relationships: [];
       };
+      v_sales_ops_daily: {
+        Row: {
+          sales_date: string;
+          branch_code: string;
+          trans_count_all: number | null;
+          trans_count_finished: number | null;
+          cancelled_count: number | null;
+          void_count: number | null;
+          new_count: number | null;
+          dwell_seconds_sum: number | null;
+          dwell_sample_count: number | null;
+          pax_total_sum: number | null;
+          menu_discount_sum: number | null;
+          promotion_discount_sum: number | null;
+          voucher_discount_sum: number | null;
+        };
+        Relationships: [];
+      };
+      v_sales_channel_daily: {
+        Row: {
+          sales_date: string;
+          branch_code: string;
+          channel: string | null;
+          revenue: number | null;
+          trans_count: number | null;
+        };
+        Relationships: [];
+      };
+      v_sales_payment_method_daily: {
+        Row: {
+          sales_date: string;
+          branch_code: string;
+          payment_method_type_name: string | null;
+          payment_amount: number | null;
+          payment_count: number | null;
+        };
+        Relationships: [];
+      };
       v_promo_daily: {
         Row: {
           sales_date: string;

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSalesBills } from "@/lib/queries/sales";
 import { getOutletOptions } from "@/lib/queries/meta";
 import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
@@ -72,20 +73,15 @@ export function SalesBillListPanel({
         <div className="flex flex-wrap items-center gap-2.5">
           <label className="flex items-center gap-1.5 text-xs text-text-secondary">
             Per halaman:
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
+            <Dropdown
+              value={String(pageSize)}
+              onChange={(v) => {
+                setPageSize(Number(v));
                 setPage(1);
               }}
               className={selectClass}
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) }))}
+            />
           </label>
         </div>
       </div>

@@ -59,3 +59,104 @@ export function groupByHour(rows: SalesHourlyLike[]): { hour: number; revenue: n
     .sort(([a], [b]) => a - b)
     .map(([hour, v]) => ({ hour, ...v }));
 }
+
+interface SalesOpsDailyLike {
+  trans_count_all: number | null;
+  trans_count_finished: number | null;
+  cancelled_count: number | null;
+  void_count: number | null;
+  new_count: number | null;
+  dwell_seconds_sum: number | null;
+  dwell_sample_count: number | null;
+  pax_total_sum: number | null;
+  menu_discount_sum: number | null;
+  promotion_discount_sum: number | null;
+  voucher_discount_sum: number | null;
+}
+
+interface SalesOpsSum {
+  trans_count_all: number;
+  trans_count_finished: number;
+  cancelled_count: number;
+  void_count: number;
+  new_count: number;
+  dwell_seconds_sum: number;
+  dwell_sample_count: number;
+  pax_total_sum: number;
+  menu_discount_sum: number;
+  promotion_discount_sum: number;
+  voucher_discount_sum: number;
+}
+
+export function sumSalesOpsDaily(rows: SalesOpsDailyLike[]): SalesOpsSum {
+  return rows.reduce<SalesOpsSum>(
+    (acc, r) => ({
+      trans_count_all: acc.trans_count_all + (r.trans_count_all ?? 0),
+      trans_count_finished: acc.trans_count_finished + (r.trans_count_finished ?? 0),
+      cancelled_count: acc.cancelled_count + (r.cancelled_count ?? 0),
+      void_count: acc.void_count + (r.void_count ?? 0),
+      new_count: acc.new_count + (r.new_count ?? 0),
+      dwell_seconds_sum: acc.dwell_seconds_sum + (r.dwell_seconds_sum ?? 0),
+      dwell_sample_count: acc.dwell_sample_count + (r.dwell_sample_count ?? 0),
+      pax_total_sum: acc.pax_total_sum + (r.pax_total_sum ?? 0),
+      menu_discount_sum: acc.menu_discount_sum + (r.menu_discount_sum ?? 0),
+      promotion_discount_sum: acc.promotion_discount_sum + (r.promotion_discount_sum ?? 0),
+      voucher_discount_sum: acc.voucher_discount_sum + (r.voucher_discount_sum ?? 0),
+    }),
+    {
+      trans_count_all: 0,
+      trans_count_finished: 0,
+      cancelled_count: 0,
+      void_count: 0,
+      new_count: 0,
+      dwell_seconds_sum: 0,
+      dwell_sample_count: 0,
+      pax_total_sum: 0,
+      menu_discount_sum: 0,
+      promotion_discount_sum: 0,
+      voucher_discount_sum: 0,
+    }
+  );
+}
+
+interface SalesChannelLike {
+  channel: string | null;
+  revenue: number | null;
+  trans_count: number | null;
+}
+
+export function groupByChannel(rows: SalesChannelLike[]): { channel: string; revenue: number; trans_count: number }[] {
+  const map = new Map<string, { revenue: number; trans_count: number }>();
+  for (const r of rows) {
+    const key = r.channel ?? "Tidak Diketahui";
+    const e = map.get(key) ?? { revenue: 0, trans_count: 0 };
+    e.revenue += r.revenue ?? 0;
+    e.trans_count += r.trans_count ?? 0;
+    map.set(key, e);
+  }
+  return [...map.entries()]
+    .sort(([, a], [, b]) => b.revenue - a.revenue)
+    .map(([channel, v]) => ({ channel, ...v }));
+}
+
+interface SalesPaymentMethodLike {
+  payment_method_type_name: string | null;
+  payment_amount: number | null;
+  payment_count: number | null;
+}
+
+export function groupByPaymentMethod(
+  rows: SalesPaymentMethodLike[]
+): { payment_method_type_name: string; payment_amount: number; payment_count: number }[] {
+  const map = new Map<string, { payment_amount: number; payment_count: number }>();
+  for (const r of rows) {
+    const key = r.payment_method_type_name ?? "Tidak Diketahui";
+    const e = map.get(key) ?? { payment_amount: 0, payment_count: 0 };
+    e.payment_amount += r.payment_amount ?? 0;
+    e.payment_count += r.payment_count ?? 0;
+    map.set(key, e);
+  }
+  return [...map.entries()]
+    .sort(([, a], [, b]) => b.payment_amount - a.payment_amount)
+    .map(([payment_method_type_name, v]) => ({ payment_method_type_name, ...v }));
+}
