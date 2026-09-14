@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMenuPerformance } from "@/lib/queries/sales";
 import { fmtNum } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { Dropdown } from "@/components/ui/dropdown";
 
 const TREND_COLOR = { naik: "#16a34a", turun: "#dc2626", stagnan: "oklch(50% 0.01 260)" } as const;
 const TREND_LABEL = { naik: "↑ Naik", turun: "↓ Turun", stagnan: "→ Stagnan" } as const;
@@ -66,32 +67,24 @@ export function MenuUnderperformingPanel({
         <div className="flex flex-wrap items-center gap-2.5">
           <label className="flex items-center gap-1.5 text-xs text-text-secondary">
             Threshold takeout:
-            <select
-              value={thresholdDraft}
-              onChange={(e) => setThresholdDraft(Number(e.target.value))}
+            <Dropdown
+              value={String(thresholdDraft)}
+              onChange={(v) => setThresholdDraft(Number(v))}
               className={selectClass}
-            >
-              {THRESHOLD_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  &lt;{t} unit
-                </option>
-              ))}
-            </select>
+              options={THRESHOLD_OPTIONS.map((t) => ({ value: String(t), label: `<${t} unit` }))}
+            />
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-secondary">
             Tampilkan:
-            <select
-              value={limitDraft}
-              onChange={(e) => setLimitDraft(e.target.value === SHOW_ALL ? SHOW_ALL : (Number(e.target.value) as Limit))}
+            <Dropdown
+              value={String(limitDraft)}
+              onChange={(v) => setLimitDraft(v === SHOW_ALL ? SHOW_ALL : (Number(v) as Limit))}
               className={selectClass}
-            >
-              {LIMIT_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n} menu
-                </option>
-              ))}
-              <option value={SHOW_ALL}>Semua</option>
-            </select>
+              options={[
+                ...LIMIT_OPTIONS.map((n) => ({ value: String(n), label: `${n} menu` })),
+                { value: SHOW_ALL, label: "Semua" },
+              ]}
+            />
           </label>
           <button
             type="button"

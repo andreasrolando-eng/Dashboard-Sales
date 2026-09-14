@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMemberMenuPurchases, getMemberOptions } from "@/lib/queries/membership";
 import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
+import { Dropdown } from "@/components/ui/dropdown";
 
 /**
  * Per-member menu purchase report ("member ini beli menu apa aja") for the
@@ -71,19 +72,14 @@ export function MemberMenuReportPanel({
         <div className="text-sm font-bold text-text">Riwayat Menu per Member</div>
         <label className="flex items-center gap-1.5 text-xs text-text-secondary">
           Member:
-          <select
+          <Dropdown
             value={activeMember}
-            onChange={(e) => setSelectedMember(e.target.value)}
+            onChange={setSelectedMember}
             className={selectClass}
             disabled={options.length === 0}
-          >
-            {options.length === 0 && <option value="">Tidak ada member</option>}
-            {options.map((m) => (
-              <option key={m.member_code} value={m.member_code}>
-                {m.member_name}
-              </option>
-            ))}
-          </select>
+            placeholder="Tidak ada member"
+            options={options.map((m) => ({ value: m.member_code, label: m.member_name }))}
+          />
         </label>
       </div>
 

@@ -8,6 +8,7 @@ import { ManualSyncButton } from "./manual-sync-button";
 const TITLE_MAP: Record<TabKey, string> = {
   overview: "Overview",
   sales: "Analisa Sales",
+  ops: "Analisa Operasional",
   membership: "Analisa Membership",
   marketing: "Marketing",
 };

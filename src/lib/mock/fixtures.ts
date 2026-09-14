@@ -58,6 +58,23 @@ const PEAK_HOUR_WEIGHT: Record<number, number> = {
   17: 0.28, 18: 0.42, 19: 0.85, 20: 1, 21: 0.6, 22: 0.22,
 };
 
+// Channel/payment-method labels and weights mirror real distributions seen
+// in the live ESB data (visit_purpose_name/payment_method_type_name), 27
+// Aug 2026 -- see supabase/migrations/20260828090000_ops_analytics.sql.
+export const CHANNELS = [
+  { channel: "Dine In", weight: 0.79 },
+  { channel: "Pick Up", weight: 0.15 },
+  { channel: "Delivery", weight: 0.06 },
+];
+
+export const PAYMENT_METHODS = [
+  { payment_method_type_name: "CARD", weight: 0.7 },
+  { payment_method_type_name: "VOUCHER", weight: 0.16 },
+  { payment_method_type_name: "CASH", weight: 0.09 },
+  { payment_method_type_name: "MEMBER DEPOSIT", weight: 0.04 },
+  { payment_method_type_name: "BANK", weight: 0.01 },
+];
+
 /** Deterministic pseudo-random in [0,1), seeded so mock data is stable across renders. */
 export function seededRandom(seed: number): number {
   const x = Math.sin(seed) * 10000;

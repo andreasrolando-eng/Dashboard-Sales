@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { firstOfMonthISO, todayLocalISO } from "@/lib/format";
 
-export type TabKey = "overview" | "sales" | "membership" | "marketing";
+export type TabKey = "overview" | "sales" | "ops" | "membership" | "marketing";
 
 export const ALL_OUTLETS = "Semua Outlet";
 export const ALL_CATEGORIES = "Semua Kategori";

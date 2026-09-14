@@ -7,6 +7,7 @@ import { LogoutButton } from "./logout-button";
 const NAV_ITEMS: { key: TabKey; label: string; square: boolean }[] = [
   { key: "overview", label: "Overview", square: true },
   { key: "sales", label: "Sales", square: false },
+  { key: "ops", label: "Operasional", square: false },
   { key: "membership", label: "Membership", square: false },
   { key: "marketing", label: "Marketing", square: true },
 ];

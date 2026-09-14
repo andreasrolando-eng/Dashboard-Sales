@@ -1,8 +1,11 @@
 import type { Database } from "@/types/database.types";
 import type { SalesBill } from "@/lib/queries/sales";
-import { dateRange, MEMBERS, OUTLETS, PEAK_HOUR_WEIGHT, PEAK_HOURS, PRODUCTS, PROMOTIONS, seededRandom } from "./fixtures";
+import { CHANNELS, dateRange, MEMBERS, OUTLETS, PAYMENT_METHODS, PEAK_HOUR_WEIGHT, PEAK_HOURS, PRODUCTS, PROMOTIONS, seededRandom } from "./fixtures";
 
 type SalesDailyRow = Database["public"]["Views"]["v_sales_daily_outlet"]["Row"];
+type SalesOpsDailyRow = Database["public"]["Views"]["v_sales_ops_daily"]["Row"];
+type SalesChannelRow = Database["public"]["Views"]["v_sales_channel_daily"]["Row"];
+type SalesPaymentMethodRow = Database["public"]["Views"]["v_sales_payment_method_daily"]["Row"];
 type SalesHourlyRow = Database["public"]["Views"]["v_sales_hourly_outlet"]["Row"];
 type SalesProductRow = Database["public"]["Views"]["v_sales_product_daily"]["Row"];
 type MenuPerfRow = Database["public"]["Functions"]["fn_menu_performance"]["Returns"][number];
@@ -49,6 +52,97 @@ export function mockSalesDailyOutlet(dateStart: string, dateEnd: string, outlet?
         member_revenue: Math.round(revenue * memberShare),
         non_promo_revenue: Math.round(revenue * (1 - promoShare)),
         non_promo_trans_count: Math.round(trans * (1 - promoShare)),
+      });
+    });
+  });
+  return rows;
+}
+
+export function mockSalesOpsDaily(dateStart: string, dateEnd: string, outlet?: string | null): SalesOpsDailyRow[] {
+  const rows: SalesOpsDailyRow[] = [];
+  dateRange(dateStart, dateEnd).forEach((date, di) => {
+    const weekday = new Date(date).getDay();
+    const weekendBoost = weekday === 0 || weekday === 6 ? 1.25 : 1;
+    scopedOutlets(outlet).forEach((o) => {
+      const seed = di * 97 + o.branch_code.charCodeAt(0) * 13;
+      const noise = 0.85 + seededRandom(seed) * 0.3;
+      const revenue = Math.round(4_200_000 * OUTLET_WEIGHT[o.branch_code] * weekendBoost * noise);
+      const transAll = Math.max(1, Math.round((revenue / 56_000) * 1.18));
+      const finished = Math.round(transAll * 0.85);
+      const cancelled = Math.round(transAll * 0.08);
+      const void_ = Math.max(0, transAll - finished - cancelled - Math.round(transAll * 0.05));
+      const newCount = transAll - finished - cancelled - void_;
+      const dwellSampleCount = Math.round(finished * 0.9);
+      const avgDwellMin = 40 + seededRandom(seed + 4) * 40;
+      const avgPax = 1.8 + seededRandom(seed + 5) * 1.4;
+      rows.push({
+        sales_date: date,
+        branch_code: o.branch_code,
+        trans_count_all: transAll,
+        trans_count_finished: finished,
+        cancelled_count: cancelled,
+        void_count: void_,
+        new_count: newCount,
+        dwell_seconds_sum: Math.round(dwellSampleCount * avgDwellMin * 60),
+        dwell_sample_count: dwellSampleCount,
+        pax_total_sum: Math.round(finished * avgPax),
+        menu_discount_sum: Math.round(revenue * 0.005 * seededRandom(seed + 6)),
+        promotion_discount_sum: Math.round(revenue * 0.06 * (0.6 + seededRandom(seed + 7) * 0.6)),
+        voucher_discount_sum: Math.round(revenue * 0.015 * seededRandom(seed + 8)),
+      });
+    });
+  });
+  return rows;
+}
+
+export function mockSalesChannelDaily(dateStart: string, dateEnd: string, outlet?: string | null): SalesChannelRow[] {
+  const rows: SalesChannelRow[] = [];
+  dateRange(dateStart, dateEnd).forEach((date, di) => {
+    const weekday = new Date(date).getDay();
+    const weekendBoost = weekday === 0 || weekday === 6 ? 1.25 : 1;
+    scopedOutlets(outlet).forEach((o) => {
+      const seed = di * 97 + o.branch_code.charCodeAt(0) * 13;
+      const noise = 0.85 + seededRandom(seed) * 0.3;
+      const revenue = Math.round(4_200_000 * OUTLET_WEIGHT[o.branch_code] * weekendBoost * noise);
+      const transCount = Math.max(1, Math.round(revenue / 56_000));
+      CHANNELS.forEach((c, ci) => {
+        const share = c.weight * (0.85 + seededRandom(seed + ci + 10) * 0.3);
+        rows.push({
+          sales_date: date,
+          branch_code: o.branch_code,
+          channel: c.channel,
+          revenue: Math.round(revenue * share),
+          trans_count: Math.round(transCount * share),
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+export function mockSalesPaymentMethodDaily(
+  dateStart: string,
+  dateEnd: string,
+  outlet?: string | null
+): SalesPaymentMethodRow[] {
+  const rows: SalesPaymentMethodRow[] = [];
+  dateRange(dateStart, dateEnd).forEach((date, di) => {
+    const weekday = new Date(date).getDay();
+    const weekendBoost = weekday === 0 || weekday === 6 ? 1.25 : 1;
+    scopedOutlets(outlet).forEach((o) => {
+      const seed = di * 97 + o.branch_code.charCodeAt(0) * 13;
+      const noise = 0.85 + seededRandom(seed) * 0.3;
+      const revenue = Math.round(4_200_000 * OUTLET_WEIGHT[o.branch_code] * weekendBoost * noise);
+      const transCount = Math.max(1, Math.round(revenue / 56_000));
+      PAYMENT_METHODS.forEach((p, pi) => {
+        const share = p.weight * (0.85 + seededRandom(seed + pi + 20) * 0.3);
+        rows.push({
+          sales_date: date,
+          branch_code: o.branch_code,
+          payment_method_type_name: p.payment_method_type_name,
+          payment_amount: Math.round(revenue * share),
+          payment_count: Math.round(transCount * share),
+        });
       });
     });
   });

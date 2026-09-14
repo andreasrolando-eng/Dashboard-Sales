@@ -85,7 +85,9 @@ _Terakhir diupdate: 21 Agustus 2026._
    - **Kalau ini kejadian lagi**: cek `select * from sync_dispatch order by id desc limit 20` (bukan cuma `cron.job_run_details` — itu cuma nunjukin SQL dispatch-nya jalan, BUKAN hasil HTTP call-nya, karena `net.http_post` async lewat pg_net) buat lihat status code asli, terus cek gap di `sync_log` per `target_date` buat tau tanggal mana yang bolong.
 2. **Endpoint membership ESB** — belum ada sample/dokumentasi. `supabase/functions/sync-esb/membership.ts` masih stub (off by default via `ESB_MEMBERSHIP_ENDPOINT` env var kosong). Analytics membership tetap jalan (dari `memberCode` di data sales), cuma field `tier`/`join_date` di `raw_members` yang belum akurat (pakai fallback rule spending-bracket).
 3. **Re-sync ulang data lama** kalau belum — karena migration `20260813100000` nge-truncate `raw_sales_menu_items`, tanggal-tanggal yang udah pernah di-sync sebelum migration ini perlu di-sync ulang lewat tombol Sync Manual.
-4. **Deploy ke Vercel** — belum dilakukan sama sekali, project masih jalan lokal (`npm run dev`) aja.
+4. **Deploy ke Vercel** — GitHub↔Vercel sudah tersambung dan auto-deploy jalan (commit `ca3ec97` di-deploy 27 Agustus, GitHub Deployments mencatat "Deployment has completed"). **Tapi belum bisa diakses siapa pun**: Vercel Deployment Protection masih aktif, semua URL project (`dashboard-sales-nando-isd.vercel.app` dan URL per-commit) 302 ke `vercel.com/sso-api`, jadi cuma anggota Vercel team `nando-isd` yang bisa buka. Matikan di Project Settings → Deployment Protection → Vercel Authentication. Aman dimatikan: app ini punya login sendiri (Supabase email+password) plus RLS.
+   - **Jangan pakai `dashboard-sales.vercel.app`** — domain itu **project lain** (build Create React App, bukan Next.js), bukan dashboard ini.
+   - Isi konten prod belum pernah diverifikasi (ketutup SSO). Sesudah protection dimatikan, cek `/login` render + bisa login + tab dashboard keluar datanya.
 5. **healthchecks.io** — belum dikonfirmasi udah di-setup atau belum (opsional tapi disarankan buat FR-5).
 
 ## Referensi Cepat
