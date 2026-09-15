@@ -4,6 +4,7 @@ import { transformSalesRecords } from "./transform.ts";
 import { upsertBatch } from "./upsert.ts";
 import { syncMembership } from "./membership.ts";
 import { pingFailure, pingSuccess } from "./healthchecks.ts";
+import { refreshAnalytics } from "./refresh-analytics.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const JOB_NAME = "sync-esb";
@@ -183,6 +184,8 @@ Deno.serve(async (req) => {
   for (const date of dates) {
     days.push(await syncOneDay(client, date));
   }
+
+  await refreshAnalytics(client);
 
   const failedDays = days.filter((d) => !d.ok);
   const allFailed = failedDays.length === days.length;

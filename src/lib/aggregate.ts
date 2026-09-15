@@ -41,6 +41,33 @@ export function groupRevenueByOutlet(
     .sort((a, b) => b.revenue - a.revenue);
 }
 
+interface OutletSales {
+  revenue: number;
+  nett_sales: number;
+  trans_count: number;
+  member_revenue: number;
+}
+
+/** Same grain as groupRevenueByOutlet but keeps every metric, for the outlet leaderboard. */
+export function groupSalesByOutlet(
+  rows: SalesDailyLike[],
+  outlets: { branch_code: string; branch_name: string }[]
+): (OutletSales & { branch_code: string; branch_name: string })[] {
+  const map = new Map<string, OutletSales>();
+  for (const r of rows) {
+    const e = map.get(r.branch_code) ?? { revenue: 0, nett_sales: 0, trans_count: 0, member_revenue: 0 };
+    e.revenue += r.revenue ?? 0;
+    e.nett_sales += r.nett_sales ?? 0;
+    e.trans_count += r.trans_count ?? 0;
+    e.member_revenue += r.member_revenue ?? 0;
+    map.set(r.branch_code, e);
+  }
+  const empty: OutletSales = { revenue: 0, nett_sales: 0, trans_count: 0, member_revenue: 0 };
+  return outlets
+    .map((o) => ({ ...o, ...(map.get(o.branch_code) ?? empty) }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
 interface SalesHourlyLike {
   hour_of_day: number;
   revenue: number | null;

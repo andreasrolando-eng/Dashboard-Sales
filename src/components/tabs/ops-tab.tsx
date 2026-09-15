@@ -99,14 +99,14 @@ export function OpsTab() {
         <KpiCard
           label="Tingkat Cancel/Void"
           value={`${cancelVoidRate.toFixed(1)}%`}
-          delta={cancelVoidDelta.text}
-          deltaColor={cancelVoidDelta.color}
+          delta={cancelVoidDelta.delta}
+          deltaColor={cancelVoidDelta.deltaColor}
         />
         <KpiCard
           label="Rata-rata Dwell Time"
           value={fmtDurationMin(avgDwellMin)}
-          delta={dwellDelta.text}
-          deltaColor={dwellDelta.color}
+          delta={dwellDelta.delta}
+          deltaColor={dwellDelta.deltaColor}
         />
         <KpiCard label="Revenue per Cover" value={fmtRupiah(revenuePerCover)} />
       </div>
