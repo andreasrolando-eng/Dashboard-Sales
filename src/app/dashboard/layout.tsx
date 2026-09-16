@@ -1,5 +1,8 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { mfaChallengePending } from "@/lib/supabase/mfa";
+import { rememberMeExpired } from "@/lib/supabase/remember-me";
 import { DashboardChrome } from "@/components/layout/dashboard-chrome";
 
 // Same double-gated dev bypass as src/lib/supabase/proxy.ts -- see that
@@ -16,8 +19,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
 
-    if (!user) {
+    if (!user || rememberMeExpired(cookieStore) || (await mfaChallengePending(supabase))) {
       redirect("/login");
     }
   }

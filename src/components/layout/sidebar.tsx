@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { useDashboardFilters, type TabKey } from "@/lib/use-dashboard-filters";
 import { LogoutButton } from "./logout-button";
@@ -23,7 +24,8 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
       )}
     >
       <div className="flex items-center gap-2.5 px-2 mb-8">
-        <div className="w-[30px] h-[30px] rounded-lg bg-accent" />
+        {/* eslint-disable-next-line @next/next/no-img-element -- static asset from public/, no next/image usage elsewhere in the app */}
+        <img src="/ESB-logo.png" alt="ESB Analytics" className="w-[30px] h-[30px] rounded-lg object-contain" />
         <div className="text-base font-bold text-text">ESB Analytics</div>
       </div>
 
@@ -59,6 +61,14 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
       </nav>
 
       <div className="mt-auto pt-4 border-t border-border">
+        <Link
+          href="/account/security"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-3 py-[11px] rounded-[10px] text-text-secondary hover:bg-hover text-sm font-medium"
+        >
+          <div className="w-[9px] h-[9px] rounded-sm bg-text-inactive-dot" />
+          Keamanan
+        </Link>
         <LogoutButton />
       </div>
     </div>
