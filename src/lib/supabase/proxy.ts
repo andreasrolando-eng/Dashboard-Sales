@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.types";
+import { mfaChallengePending } from "./mfa";
+import { rememberMeExpired } from "./remember-me";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -46,11 +48,29 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  const isPublicPath = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+
   const {
-    data: { user },
+    data: { user: rawUser },
   } = await supabase.auth.getUser();
 
-  const isPublicPath = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  let user = rawUser;
+
+  // "Remember me" was declined and the browser session it was scoped to has
+  // ended (see rememberMeExpired()) -- the Supabase refresh-token cookie is
+  // still technically valid, but treat this as logged out and revoke it.
+  if (user && rememberMeExpired(request.cookies)) {
+    await supabase.auth.signOut();
+    user = null;
+
+    if (!isPublicPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      const redirectResponse = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c));
+      return redirectResponse;
+    }
+  }
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
@@ -58,7 +78,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && request.nextUrl.pathname === "/login") {
+  // A password-only (AAL1) session for a user who has TOTP enrolled is not
+  // fully authenticated yet -- send it back to /login, which renders the
+  // MFA challenge step (rather than the dashboard) for exactly this state.
+  if (user && !isPublicPath && (await mfaChallengePending(supabase))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && request.nextUrl.pathname === "/login" && !(await mfaChallengePending(supabase))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

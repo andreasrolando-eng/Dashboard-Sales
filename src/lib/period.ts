@@ -15,14 +15,19 @@ export function pctDelta(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
-/** FR-6 WoW/MoM style delta label. `invert` for metrics where a decrease is the good direction (e.g. churn). */
+/**
+ * FR-6 WoW/MoM style delta label. `invert` for metrics where a decrease is
+ * the good direction (e.g. churn). Keys are named to match `KpiCard`'s props
+ * exactly since every call site spreads the result straight onto it
+ * (`{...deltaLabel(...)}`) -- keep them in sync if either side changes.
+ */
 export function deltaLabel(
   pct: number | null,
   opts?: { invert?: boolean; suffix?: string }
-): { text: string; color: string } {
+): { delta: string; deltaColor: string } {
   const suffix = opts?.suffix ?? "vs periode lalu";
-  if (pct === null) return { text: `Data periode lalu tidak tersedia`, color: "oklch(50% 0.01 260)" };
+  if (pct === null) return { delta: `Data periode lalu tidak tersedia`, deltaColor: "oklch(50% 0.01 260)" };
   const good = opts?.invert ? pct <= 0 : pct >= 0;
   const sign = pct >= 0 ? "+" : "";
-  return { text: `${sign}${pct.toFixed(1)}% ${suffix}`, color: good ? "#16a34a" : "#dc2626" };
+  return { delta: `${sign}${pct.toFixed(1)}% ${suffix}`, deltaColor: good ? "#16a34a" : "#dc2626" };
 }

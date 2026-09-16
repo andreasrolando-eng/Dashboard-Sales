@@ -5,14 +5,16 @@ import { useDashboardFilters, ALL_OUTLETS } from "@/lib/use-dashboard-filters";
 import { getSalesDailyOutlet } from "@/lib/queries/sales";
 import { getMembershipSummary, getMembershipNewWeekly } from "@/lib/queries/membership";
 import { getOutletOptions } from "@/lib/queries/meta";
-import { groupRevenueByDate, groupRevenueByOutlet, sumSalesDaily } from "@/lib/aggregate";
+import { groupRevenueByDate, groupRevenueByOutlet, groupSalesByOutlet, sumSalesDaily } from "@/lib/aggregate";
 import { getPreviousPeriod, pctDelta, deltaLabel } from "@/lib/period";
+import { buildOverviewInsight } from "@/lib/insights";
 import { fmtDateFullID, fmtNum, fmtRupiah } from "@/lib/format";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartCard } from "@/components/ui/chart-card";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
 import { OutletBarList } from "@/components/charts/outlet-bar-list";
 import { Donut } from "@/components/charts/donut";
+import { OutletLeaderboardPanel } from "@/components/tabs/outlet-leaderboard-panel";
 
 export function OverviewTab() {
   const { outlet, dateStart, dateEnd } = useDashboardFilters();
@@ -30,6 +32,10 @@ export function OverviewTab() {
     queryKey: ["sales-daily", ALL_OUTLETS, dateStart, dateEnd],
     queryFn: () => getSalesDailyOutlet(dateStart, dateEnd, ALL_OUTLETS),
   });
+  const prevAllOutletsQuery = useQuery({
+    queryKey: ["sales-daily", ALL_OUTLETS, prevStart, prevEnd],
+    queryFn: () => getSalesDailyOutlet(prevStart, prevEnd, ALL_OUTLETS),
+  });
   const outletOptionsQuery = useQuery({ queryKey: ["outlet-options"], queryFn: getOutletOptions });
 
   const membershipQuery = useQuery({
@@ -45,7 +51,14 @@ export function OverviewTab() {
     queryFn: () => getMembershipNewWeekly(dateEnd),
   });
 
-  if (!currentQuery.data || !previousQuery.data || !allOutletsQuery.data || !outletOptionsQuery.data || !membershipQuery.data) {
+  if (
+    !currentQuery.data ||
+    !previousQuery.data ||
+    !allOutletsQuery.data ||
+    !prevAllOutletsQuery.data ||
+    !outletOptionsQuery.data ||
+    !membershipQuery.data
+  ) {
     return <div className="text-sm text-text-secondary">Memuat data...</div>;
   }
 
@@ -66,8 +79,25 @@ export function OverviewTab() {
   const outletBars = groupRevenueByOutlet(allOutletsQuery.data, outletOptionsQuery.data);
   const maxOutletRevenue = Math.max(1, ...outletBars.map((o) => o.revenue));
 
+  // Insight always compares the WHOLE business (all outlets) regardless of
+  // the outlet filter -- same convention as the "Revenue per Outlet" chart
+  // above, so the narrative and the leaderboard below never disagree with
+  // each other over a filter the insight itself doesn't apply.
+  const overallCurrent = sumSalesDaily(allOutletsQuery.data);
+  const overallPrevious = sumSalesDaily(prevAllOutletsQuery.data);
+  const insight = buildOverviewInsight(
+    overallCurrent,
+    overallPrevious,
+    groupSalesByOutlet(allOutletsQuery.data, outletOptionsQuery.data),
+    groupSalesByOutlet(prevAllOutletsQuery.data, outletOptionsQuery.data)
+  );
+
   return (
     <>
+      <div className="bg-accent-soft border border-border rounded-[14px] px-5 py-4 mb-6 text-sm text-text">
+        {insight}
+      </div>
+
       <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Total Revenue"
@@ -126,6 +156,8 @@ export function OverviewTab() {
           <Donut percent={memberRevenuePct} centerValue={`${Math.round(memberRevenuePct)}%`} centerLabel="Member" />
         </div>
       </div>
+
+      <OutletLeaderboardPanel dateStart={dateStart} dateEnd={dateEnd} />
     </>
   );
 }
