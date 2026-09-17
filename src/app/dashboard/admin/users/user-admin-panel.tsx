@@ -31,7 +31,7 @@ function AddUserForm() {
             name="email"
             type="email"
             required
-            placeholder="nama@esb.co.id"
+            placeholder="nama@email.com"
             className="w-full box-border px-3.5 py-2.5 rounded-[10px] border border-border-form text-sm outline-none focus:border-accent"
           />
         </div>
