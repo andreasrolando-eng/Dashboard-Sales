@@ -37,7 +37,7 @@ export default async function AdminUsersPage() {
     <div>
       <div className="text-2xl font-bold text-text mb-1">Kelola User</div>
       <div className="text-[13px] text-text-secondary mb-6">
-        Email yang boleh login lewat Google SSO. Cuma email @esb.co.id yang bisa ditambahkan.
+        Email yang boleh login lewat Google SSO. Email apa pun bisa ditambahkan, asal pemiliknya punya akun Google.
       </div>
       <UserAdminPanel users={users} currentEmail={user.email ?? ""} />
     </div>

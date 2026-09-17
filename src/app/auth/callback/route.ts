@@ -3,13 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { REMEMBER_ME_PREF_COOKIE, SESSION_MARKER_COOKIE } from "@/lib/supabase/remember-me";
 
-// Server-side allowlist -- the `hd` param on the Google OAuth request
-// (google-signin-button.tsx) only narrows the account picker, it's
-// client-controlled and not a security boundary. Anyone can authenticate
-// with any Google account; this is the actual gate. No env var set = no
-// restriction, so a misconfigured deploy fails open -- keep it set.
-const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN;
-
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const origin = request.nextUrl.origin;
@@ -26,16 +19,14 @@ export async function GET(request: NextRequest) {
   }
 
   const email = data.session.user.email ?? "";
-  if (ALLOWED_EMAIL_DOMAIN && !email.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN.toLowerCase()}`)) {
-    await supabase.auth.signOut();
-    return NextResponse.redirect(`${origin}/login?error=domain_not_allowed`);
-  }
 
-  // Domain match alone isn't enough -- exchangeCodeForSession() above already
-  // auto-created a Supabase user for ANY @esb.co.id Google account, which
-  // would make login self-service for the whole company. fn_is_allowed_email
+  // No domain restriction -- exchangeCodeForSession() above already
+  // auto-created a Supabase user for whatever Google account just
+  // authenticated, which would make login self-service for anyone with a
+  // Google account if this were the only check. fn_is_allowed_email
   // (supabase/migrations/20260917090000_google_sso_allowlist.sql) checks a
-  // table that only an admin writes to, never the auth flow itself.
+  // table that only an admin writes to, never the auth flow itself -- this
+  // is the actual, sole access gate now.
   const { data: allowed } = await supabase.rpc("fn_is_allowed_email", { p_email: email });
   if (!allowed) {
     await supabase.auth.signOut();

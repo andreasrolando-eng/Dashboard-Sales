@@ -42,19 +42,25 @@ SQL editor and check for an error.
 ## A user can't log in (Google SSO)
 
 Login is Google OAuth only (no password) -- see `src/app/login/` and
-`src/app/auth/callback/route.ts`. Two independent gates, checked in this order:
+`src/app/auth/callback/route.ts`. No email domain restriction -- any Google
+account can attempt sign-in. The sole gate is the `allowed_users` table
+(`supabase/migrations/20260917090000_google_sso_allowlist.sql`, extended with
+an `is_admin` column by `20260917100000_admin_role.sql`) -- Google OAuth alone
+would otherwise auto-create an account for anyone with a Google account.
 
-1. **`domain_not_allowed`**: their Google account's email isn't `@esb.co.id`
-   (`ALLOWED_EMAIL_DOMAIN` env var). Not fixable per-user -- they need to use
-   their company Google account, not a personal one.
-2. **`not_registered`**: their email passed the domain check but isn't in the
-   `allowed_users` table (`supabase/migrations/20260917090000_google_sso_allowlist.sql`).
-   This is the actual access allowlist -- Google OAuth alone would otherwise
-   auto-create an account for anyone at the company. **To grant access**:
-   ```sql
-   insert into allowed_users (email) values ('nama@esb.co.id');
-   ```
-   No self-service invite flow exists -- this is a manual SQL insert today.
+**`not_registered` error**: their email isn't in `allowed_users`. **To grant
+access**, an admin (anyone with `is_admin = true`) can add them from
+`/dashboard/admin/users` in the app ("Kelola User" in the sidebar, admin-only),
+or via SQL directly:
+```sql
+insert into allowed_users (email) values ('nama@email.com');
+```
+
+**No admin left / need to promote someone directly**: the admin panel can't
+help if there are zero admins. Fix via SQL:
+```sql
+update allowed_users set is_admin = true where email = 'nama@email.com';
+```
 
 **"Remember me" not behaving as expected**: see `src/lib/supabase/remember-me.ts`
 for how it's enforced (an app-level gate, not a cookie `Max-Age` Supabase's own

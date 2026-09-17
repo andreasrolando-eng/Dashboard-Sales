@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 
 const ERROR_MESSAGES: Record<string, string> = {
   oauth_failed: "Login gagal, coba lagi.",
-  domain_not_allowed: "Akun ini bukan akun @esb.co.id. Pakai akun Google kerja kamu.",
   not_registered: "Akun ini belum didaftarkan buat akses dashboard. Hubungi admin untuk ditambahkan.",
 };
 
@@ -29,10 +28,10 @@ export function GoogleSigninButton() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // hd hints Google's account picker to the workspace domain -- UX only,
-        // not a security boundary; the callback route re-checks the email
-        // domain server-side since this param is client-controlled.
-        queryParams: { hd: "esb.co.id", prompt: "select_account" },
+        // No `hd` domain hint anymore -- any Google account is allowed to
+        // attempt sign-in, access is gated purely by the allowed_users
+        // allowlist (src/app/auth/callback/route.ts), not by email domain.
+        queryParams: { prompt: "select_account" },
       },
     });
     if (error) setPending(false);
@@ -70,7 +69,7 @@ export function GoogleSigninButton() {
       </label>
 
       <div className="text-center text-xs text-text-tertiary mt-[18px]">
-        Akses terbatas untuk management &amp; eksekutif dengan email @esb.co.id
+        Akses terbatas untuk email yang sudah didaftarkan admin
       </div>
     </div>
   );
