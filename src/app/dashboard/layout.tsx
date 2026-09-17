@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { mfaChallengePending } from "@/lib/supabase/mfa";
 import { rememberMeExpired } from "@/lib/supabase/remember-me";
 import { DashboardChrome } from "@/components/layout/dashboard-chrome";
 
@@ -21,7 +20,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     } = await supabase.auth.getUser();
     const cookieStore = await cookies();
 
-    if (!user || rememberMeExpired(cookieStore) || (await mfaChallengePending(supabase))) {
+    if (!user || rememberMeExpired(cookieStore)) {
       redirect("/login");
     }
   }

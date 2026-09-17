@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.types";
-import { mfaChallengePending } from "./mfa";
 import { rememberMeExpired } from "./remember-me";
 
-const PUBLIC_PATHS = ["/login"];
+// /auth/callback has to be reachable pre-session: it's the request that
+// *creates* the session (exchangeCodeForSession), which hasn't happened yet
+// when this proxy runs (it always runs before the route handler).
+const PUBLIC_PATHS = ["/login", "/auth/callback"];
 
 // Same double gate as src/lib/mock/is-mock.ts: lets the dashboard be reached
 // with `npm run dev` + NEXT_PUBLIC_USE_MOCK_DATA=true and no real Supabase
@@ -78,16 +80,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // A password-only (AAL1) session for a user who has TOTP enrolled is not
-  // fully authenticated yet -- send it back to /login, which renders the
-  // MFA challenge step (rather than the dashboard) for exactly this state.
-  if (user && !isPublicPath && (await mfaChallengePending(supabase))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && request.nextUrl.pathname === "/login" && !(await mfaChallengePending(supabase))) {
+  if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

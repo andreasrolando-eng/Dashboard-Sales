@@ -193,6 +193,10 @@ export interface Database {
       };
     };
     Functions: {
+      fn_is_allowed_email: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
       fn_menu_performance: {
         Args: {
           p_date_start: string;
