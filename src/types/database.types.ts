@@ -197,6 +197,22 @@ export interface Database {
         Args: { p_email: string };
         Returns: boolean;
       };
+      fn_is_admin_email: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      fn_admin_list_users: {
+        Args: Record<PropertyKey, never>;
+        Returns: { email: string; is_admin: boolean; added_at: string }[];
+      };
+      fn_admin_add_user: {
+        Args: { p_email: string; p_is_admin?: boolean };
+        Returns: undefined;
+      };
+      fn_admin_remove_user: {
+        Args: { p_email: string };
+        Returns: undefined;
+      };
       fn_menu_performance: {
         Args: {
           p_date_start: string;

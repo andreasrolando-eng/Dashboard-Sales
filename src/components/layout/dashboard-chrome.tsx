@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { Sidebar } from "./sidebar";
 
-export function DashboardChrome({ children }: { children: React.ReactNode }) {
+export function DashboardChrome({ children, isAdmin }: { children: React.ReactNode; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,7 +14,7 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
         className={cn("fixed inset-0 z-[15] bg-overlay lg:hidden", open ? "block" : "hidden")}
       />
 
-      <Sidebar open={open} onNavigate={() => setOpen(false)} />
+      <Sidebar open={open} onNavigate={() => setOpen(false)} isAdmin={isAdmin} />
 
       <div className="p-4 lg:px-10 lg:py-8 lg:ml-[240px]">
         <button

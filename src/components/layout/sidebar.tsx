@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { useDashboardFilters, type TabKey } from "@/lib/use-dashboard-filters";
 import { LogoutButton } from "./logout-button";
@@ -12,8 +14,14 @@ const NAV_ITEMS: { key: TabKey; label: string; square: boolean }[] = [
   { key: "marketing", label: "Marketing", square: true },
 ];
 
-export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
-  const { tab, setTab } = useDashboardFilters();
+export function Sidebar({ open, onNavigate, isAdmin }: { open: boolean; onNavigate: () => void; isAdmin: boolean }) {
+  const { tab } = useDashboardFilters();
+  const pathname = usePathname();
+  const router = useRouter();
+  // Nav items always target /dashboard?tab=X explicitly (not setTab's
+  // pathname-relative replace) so this still works correctly from a
+  // sub-route like /dashboard/admin/users, not just from /dashboard itself.
+  const onDashboardRoot = pathname === "/dashboard";
 
   return (
     <div
@@ -30,12 +38,12 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
 
       <nav>
         {NAV_ITEMS.map((item) => {
-          const active = tab === item.key;
+          const active = onDashboardRoot && tab === item.key;
           return (
             <div
               key={item.key}
               onClick={() => {
-                setTab(item.key);
+                router.push(`/dashboard?tab=${item.key}`);
                 onNavigate();
               }}
               className="flex items-center gap-3 px-3 py-[11px] rounded-[10px] cursor-pointer mb-0.5"
@@ -60,6 +68,16 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
       </nav>
 
       <div className="mt-auto pt-4 border-t border-border">
+        {isAdmin && (
+          <Link
+            href="/dashboard/admin/users"
+            onClick={onNavigate}
+            className="flex items-center gap-3 px-3 py-[11px] rounded-[10px] text-text-secondary hover:bg-hover text-sm font-medium"
+          >
+            <div className="w-[9px] h-[9px] rounded-sm bg-text-inactive-dot" />
+            Kelola User
+          </Link>
+        )}
         <LogoutButton />
       </div>
     </div>
