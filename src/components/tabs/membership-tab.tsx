@@ -4,12 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useDashboardFilters } from "@/lib/use-dashboard-filters";
 import { getMembershipNewWeekly, getMembershipSummary, getTopMembers } from "@/lib/queries/membership";
 import { getPreviousPeriod, pctDelta, deltaLabel } from "@/lib/period";
-import { fmtNum, fmtRupiah } from "@/lib/format";
+import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartCard } from "@/components/ui/chart-card";
 import { Badge } from "@/components/ui/badge";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
 import { Donut } from "@/components/charts/donut";
+import { ExportButtons } from "@/components/ui/export-buttons";
+import type { ExportSpec } from "@/lib/export/types";
 import { MemberMenuReportPanel } from "./member-menu-report-panel";
 
 export function MembershipTab() {
@@ -42,6 +44,24 @@ export function MembershipTab() {
   const weeklyBars = weeklyQuery.data.map((w, i) => ({ label: `M${i + 1}`, value: w.new_members ?? 0 }));
   const activePct = summary.active_pct ?? 0;
   const churnPct = summary.churn_pct ?? 0;
+
+  type TopMemberRow = (typeof topMembersQuery.data)[number];
+  const topMembersExportSpec: ExportSpec<TopMemberRow> = {
+    fileBaseName: "top-member",
+    title: "Top Member by Spending",
+    // topMembersQuery.data is already limited to the top N shown on screen --
+    // unlike Sales Bill List, there's no "show all" control on this panel, so
+    // exporting always matches what's visible, never a full-population export.
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)}`,
+    columns: [
+      { header: "Nama", accessor: (m) => m.member_name, width: 22 },
+      { header: "Outlet", accessor: (m) => m.outlet_name, width: 18 },
+      { header: "Tier", accessor: (m) => m.tier, width: 12 },
+      { header: "Kunjungan", accessor: (m) => m.visits, format: "number", align: "right", width: 12 },
+      { header: "Total Spending", accessor: (m) => m.spending, format: "currency", align: "right", width: 16 },
+      { header: "Menu Favorit", accessor: (m) => m.favorite_menu ?? "-", width: 20 },
+    ],
+  };
 
   return (
     <>
@@ -87,7 +107,16 @@ export function MembershipTab() {
       </div>
 
       <div className="bg-surface border border-border rounded-[14px] p-5 overflow-x-auto">
-        <div className="text-sm font-bold text-text mb-3.5">Top Member by Spending</div>
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-3.5">
+          <div className="text-sm font-bold text-text">Top Member by Spending</div>
+          <ExportButtons
+            spec={topMembersExportSpec}
+            dateStart={dateStart}
+            dateEnd={dateEnd}
+            rows={topMembersQuery.data}
+            disabled={topMembersQuery.data.length === 0}
+          />
+        </div>
         <div className="min-w-[620px]">
           <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1.4fr] text-[11px] font-semibold text-text-secondary pb-2.5 px-1 border-b border-border-subtle">
             <div>Nama</div>

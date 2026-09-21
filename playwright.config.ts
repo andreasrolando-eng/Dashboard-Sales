@@ -25,7 +25,11 @@ export default defineConfig({
     command: "npm run dev -- --port 3100",
     url: "http://localhost:3100",
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    // 60s intermittently wasn't enough for a cold `next dev` boot on this
+    // machine's flagged "Slow filesystem" -- CI never has a warm cache to
+    // fall back on (every run is cold), so this needs real headroom, not
+    // just enough for the common case.
+    timeout: 120_000,
     env: { NEXT_PUBLIC_USE_MOCK_DATA: "true" },
   },
 });

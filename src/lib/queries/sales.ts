@@ -217,6 +217,36 @@ export async function getSalesBills(
   };
 }
 
+/**
+ * Fetches every bill for the filter scope, not just one page -- for the
+ * export buttons, which need the full result set even though the panel
+ * itself only ever holds one page (up to 200 rows) in memory. Reuses
+ * getSalesBills as the chunk fetcher (chunkSize doubles as its pageSize),
+ * so mock mode and the sort order stay identical to the on-screen list.
+ */
+export async function getAllSalesBillsForExport(
+  dateStart: string,
+  dateEnd: string,
+  outlet: string,
+  onProgress?: (fetched: number, total: number) => void,
+  chunkSize = 1000
+): Promise<SalesBill[]> {
+  const all: SalesBill[] = [];
+  let page = 1;
+  let totalCount = Infinity;
+
+  while (all.length < totalCount) {
+    const { rows, totalCount: total } = await getSalesBills(dateStart, dateEnd, outlet, page, chunkSize);
+    totalCount = total;
+    all.push(...rows);
+    onProgress?.(all.length, totalCount);
+    if (rows.length === 0) break; // guards against an infinite loop if totalCount is ever wrong
+    page += 1;
+  }
+
+  return all;
+}
+
 export async function getMenuPerformance(
   dateStart: string,
   dateEnd: string,
