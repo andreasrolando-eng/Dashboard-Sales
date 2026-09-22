@@ -5,11 +5,13 @@ import { ALL_CATEGORIES, ALL_CATEGORY_DETAILS, useDashboardFilters } from "@/lib
 import { getMenuPerformance, getProductAggregates, getSalesHourlyOutlet } from "@/lib/queries/sales";
 import { getPromoPerformance } from "@/lib/queries/marketing";
 import { groupByHour } from "@/lib/aggregate";
-import { fmtNum } from "@/lib/format";
+import { fmtDateID, fmtNum } from "@/lib/format";
 import { buildActionRecommendations, buildMenuRecommendations } from "@/lib/recommendations";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ChartCard } from "@/components/ui/chart-card";
 import { Badge } from "@/components/ui/badge";
+import { ExportButtons } from "@/components/ui/export-buttons";
+import type { ExportSpec } from "@/lib/export/types";
 
 const MARKETING_THRESHOLD = 300;
 
@@ -59,6 +61,20 @@ export function MarketingTab() {
   });
   const menuRecommendations = buildMenuRecommendations(menuPerfQuery.data);
 
+  type PromoRow = (typeof promos)[number];
+  const promoExportSpec: ExportSpec<PromoRow> = {
+    fileBaseName: "efektivitas-promo",
+    title: "Efektivitas Promo (Lift vs Baseline & ROI)",
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)}`,
+    columns: [
+      { header: "Promo", accessor: (p) => p.promotion_name, width: 26 },
+      { header: "Redemption", accessor: (p) => p.redemptions, format: "number", align: "right", width: 14 },
+      { header: "Lift", accessor: (p) => p.lift_pct ?? 0, format: "percent", align: "right", width: 12 },
+      { header: "ROI", accessor: (p) => p.roi ?? 0, format: "number", align: "right", width: 10 },
+      { header: "Status", accessor: (p) => p.status, width: 16 },
+    ],
+  };
+
   return (
     <>
       <div className="bg-surface border border-dashed border-[oklch(85%_0.005_260)] rounded-[14px] px-6 py-5 text-center mb-5">
@@ -85,7 +101,16 @@ export function MarketingTab() {
       </div>
 
       <div className="bg-surface border border-border rounded-[14px] p-5 mb-4 overflow-x-auto">
-        <div className="text-sm font-bold text-text mb-3.5">Efektivitas Promo (Lift vs Baseline &amp; ROI)</div>
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-3.5">
+          <div className="text-sm font-bold text-text">Efektivitas Promo (Lift vs Baseline &amp; ROI)</div>
+          <ExportButtons
+            spec={promoExportSpec}
+            dateStart={dateStart}
+            dateEnd={dateEnd}
+            rows={promos}
+            disabled={promos.length === 0}
+          />
+        </div>
         <div className="min-w-[520px]">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] text-[11px] font-semibold text-text-secondary pb-2.5 px-1 border-b border-border-subtle">
             <div>Promo</div>

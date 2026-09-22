@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getSalesBills } from "@/lib/queries/sales";
+import { getAllSalesBillsForExport, getSalesBills, type SalesBill } from "@/lib/queries/sales";
 import { getOutletOptions } from "@/lib/queries/meta";
+import { ALL_OUTLETS } from "@/lib/use-dashboard-filters";
 import { fmtDateID, fmtNum, fmtRupiah } from "@/lib/format";
 import { Dropdown } from "@/components/ui/dropdown";
+import { ExportButtons } from "@/components/ui/export-buttons";
+import type { ExportSpec } from "@/lib/export/types";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
+
+// A browser building an Excel/PDF file in memory for more than this many
+// rows risks hanging the tab -- ask the user to narrow the filter instead.
+const MAX_EXPORT_ROWS = 50_000;
 
 /**
  * Bill-level drill-down under Menu Underperforming, same "own query, own
@@ -66,11 +73,36 @@ export function SalesBillListPanel({
     outletOptionsQuery.data.find((o) => o.branch_code === branchCode)?.branch_name ?? branchCode;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+  const exportSpec: ExportSpec<SalesBill> = {
+    fileBaseName: "list-transaksi",
+    title: "List Transaksi",
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | Outlet: ${outlet === ALL_OUTLETS ? ALL_OUTLETS : outletName(outlet)}`,
+    columns: [
+      { header: "Bill Number", accessor: (r) => r.bill_num },
+      { header: "Tanggal", accessor: (r) => r.sales_date, width: 14 },
+      { header: "Outlet", accessor: (r) => outletName(r.branch_code), width: 22 },
+      { header: "Total", accessor: (r) => r.grand_total, format: "currency", align: "right", width: 16 },
+    ],
+  };
+  const exportDisabled = totalCount === 0 || totalCount > MAX_EXPORT_ROWS;
+  const exportDisabledReason =
+    totalCount > MAX_EXPORT_ROWS
+      ? `Terlalu banyak baris (${fmtNum(totalCount)}) -- sempitkan tanggal/outlet dulu.`
+      : undefined;
+
   return (
     <div className="bg-surface border border-border rounded-[14px] p-5 mt-4 overflow-x-auto">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-3.5">
         <div className="text-sm font-bold text-text">List Transaksi</div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <ExportButtons
+            spec={exportSpec}
+            dateStart={dateStart}
+            dateEnd={dateEnd}
+            disabled={exportDisabled}
+            disabledReason={exportDisabledReason}
+            loadRows={(onProgress) => getAllSalesBillsForExport(dateStart, dateEnd, outlet, onProgress)}
+          />
           <label className="flex items-center gap-1.5 text-xs text-text-secondary">
             Per halaman:
             <Dropdown

@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { test, expect, type Page } from "@playwright/test";
 
 const TABS = ["overview", "sales", "ops", "membership", "marketing"] as const;
@@ -43,3 +44,41 @@ for (const tab of TABS) {
     expect(errors).toEqual([]);
   });
 }
+
+test("Excel export downloads a file from Menu Underperforming", async ({ page }) => {
+  const { errors } = trackErrors(page);
+  await page.goto("/dashboard?tab=sales");
+  await expect(page.getByText("Memuat data...")).toHaveCount(0, { timeout: 15_000 });
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 20_000 }),
+    page.getByRole("button", { name: "Excel" }).first().click(),
+  ]);
+
+  expect(download.suggestedFilename()).toMatch(/^menu-underperforming_.*\.xlsx$/);
+  // .xlsx is a zip archive -- "PK" magic bytes prove exceljs actually wrote a
+  // real archive, not just that the button click/download plumbing worked.
+  const path = await download.path();
+  const bytes = await readFile(path!);
+  expect(bytes.subarray(0, 2).toString("latin1")).toBe("PK");
+  expect(bytes.length).toBeGreaterThan(1000);
+  expect(errors).toEqual([]);
+});
+
+test("PDF export downloads a file from Menu Underperforming", async ({ page }) => {
+  const { errors } = trackErrors(page);
+  await page.goto("/dashboard?tab=sales");
+  await expect(page.getByText("Memuat data...")).toHaveCount(0, { timeout: 15_000 });
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 20_000 }),
+    page.getByRole("button", { name: "PDF" }).first().click(),
+  ]);
+
+  expect(download.suggestedFilename()).toMatch(/^menu-underperforming_.*\.pdf$/);
+  const path = await download.path();
+  const bytes = await readFile(path!);
+  expect(bytes.subarray(0, 4).toString("latin1")).toBe("%PDF");
+  expect(bytes.length).toBeGreaterThan(500);
+  expect(errors).toEqual([]);
+});

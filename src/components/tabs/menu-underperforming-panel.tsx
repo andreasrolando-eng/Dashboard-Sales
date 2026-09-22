@@ -3,12 +3,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMenuPerformance } from "@/lib/queries/sales";
-import { fmtNum } from "@/lib/format";
+import { fmtDateID, fmtNum } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Dropdown } from "@/components/ui/dropdown";
+import { ExportButtons } from "@/components/ui/export-buttons";
+import type { ExportSpec } from "@/lib/export/types";
 
 const TREND_COLOR = { naik: "#16a34a", turun: "#dc2626", stagnan: "oklch(50% 0.01 260)" } as const;
 const TREND_LABEL = { naik: "↑ Naik", turun: "↓ Turun", stagnan: "→ Stagnan" } as const;
+// Plain-text version for exports -- jsPDF's default fonts don't reliably
+// render the arrow glyphs above.
+const TREND_LABEL_PLAIN = { naik: "Naik", turun: "Turun", stagnan: "Stagnan" } as const;
 
 const THRESHOLD_OPTIONS = [10, 25, 50, 100, 250, 500, 1000];
 const LIMIT_OPTIONS = [5, 10, 20, 50] as const;
@@ -60,11 +65,26 @@ export function MenuUnderperformingPanel({
 
   const selectClass = "px-2 py-1 rounded-md border border-border-form text-xs font-sans bg-surface text-text";
 
+  type MenuRow = Awaited<ReturnType<typeof getMenuPerformance>>[number];
+  const exportSpec: ExportSpec<MenuRow> = {
+    fileBaseName: "menu-underperforming",
+    title: "Analisa Menu Underperforming",
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | Threshold takeout: <${applied.threshold} unit | Tampilkan: ${applied.limit === SHOW_ALL ? "Semua" : `${applied.limit} menu`}`,
+    columns: [
+      { header: "Menu", accessor: (r) => r.menu_name, width: 26 },
+      { header: "Unit Terjual", accessor: (r) => r.qty, format: "number", align: "right", width: 14 },
+      { header: "Kontribusi Revenue", accessor: (r) => r.contribution_pct ?? 0, format: "percent", align: "right", width: 16 },
+      { header: "Tren", accessor: (r) => TREND_LABEL_PLAIN[r.trend], width: 12 },
+      { header: "Status", accessor: (r) => (r.is_takeout_candidate ? "Kandidat Takeout" : "Pantau"), width: 16 },
+    ],
+  };
+
   return (
     <div className="bg-surface border border-border rounded-[14px] p-5 mt-4 overflow-x-auto">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-3.5">
         <div className="text-sm font-bold text-text">Analisa Menu Underperforming</div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <ExportButtons spec={exportSpec} dateStart={dateStart} dateEnd={dateEnd} rows={rows} disabled={rows.length === 0} />
           <label className="flex items-center gap-1.5 text-xs text-text-secondary">
             Threshold takeout:
             <Dropdown
