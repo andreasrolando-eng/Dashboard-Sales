@@ -1,0 +1,25 @@
+{
+  "name": "esb-analytics-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only MCP server exposing the ESB dashboard's sales/ops/membership/marketing analytics to AI clients, over stdio (Claude Code/Desktop) and Streamable HTTP (ChatGPT via Secure MCP Tunnel).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start:stdio": "node --env-file=.env dist/transports/stdio.js",
+    "start:http": "node --env-file=.env dist/transports/http.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "postgres": "^3.4.5",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
