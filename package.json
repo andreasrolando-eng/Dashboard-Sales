@@ -2,15 +2,18 @@
   "name": "esb-analytics-dashboard",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["mcp-server"],
   "scripts": {
+    "predev": "npm run build --workspace=mcp-server",
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build --workspace=mcp-server && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "playwright test"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.101.4",

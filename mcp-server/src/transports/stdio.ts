@@ -4,7 +4,7 @@ import { createDb } from "../db.js";
 import { buildAnalyticsMcpServer } from "../server.js";
 
 const config = loadConfig();
-const db = createDb(config);
+const db = createDb(config.databaseUrl);
 
 // serveStdio owns the transport; it calls this factory once to build the
 // server instance that serves the connection. stdout is reserved for the

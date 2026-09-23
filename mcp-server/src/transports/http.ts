@@ -6,7 +6,7 @@ import { createDb } from "../db.js";
 import { buildAnalyticsMcpServer } from "../server.js";
 
 const config = loadConfig();
-const db = createDb(config);
+const db = createDb(config.databaseUrl);
 
 // createMcpHandler's factory runs once PER REQUEST -- stateless by design,
 // no session lives on the handler between requests. Cheap here since it

@@ -28,6 +28,11 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // The `postgres` client (used by the /api/mcp route to reach the
+  // mcp_analytics role) talks raw TCP directly -- Next's bundler can't trace
+  // that the way it does normal imports, so it has to stay an actual
+  // require() at runtime instead of being bundled.
+  serverExternalPackages: ["postgres"],
   async headers() {
     return [
       {

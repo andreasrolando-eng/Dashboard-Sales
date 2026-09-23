@@ -1,9 +1,10 @@
 # esb-analytics-mcp
 
-Read-only MCP (Model Context Protocol) server exposing this dashboard's sales/ops/membership/marketing analytics to AI clients — one shared tool implementation, two transports:
+Read-only MCP (Model Context Protocol) server exposing this dashboard's sales/ops/membership/marketing analytics to AI clients — one shared tool implementation (`src/server.ts` + `src/tools/**`), three entrypoints:
 
-- **stdio** — for Claude Code / Claude Desktop, running locally on your machine.
-- **Streamable HTTP** — for ChatGPT (via OpenAI's Secure MCP Tunnel), also local-only by default.
+- **stdio** (`src/transports/stdio.ts`) — for Claude Code / Claude Desktop, running locally on your machine.
+- **Local Streamable HTTP** (`src/transports/http.ts`) — for ChatGPT (via OpenAI's Secure MCP Tunnel), bound to `127.0.0.1` only.
+- **Public Streamable HTTP** (`../src/app/api/mcp/route.ts`, a Next.js Route Handler in the main dashboard app) — for claude.ai's Custom Connectors, which can only reach a real HTTPS URL, never localhost. Imports this package's *built* output (`dist/`), not its TypeScript source — see that file's comment for why. This repo is an npm workspace (`mcp-server` is a workspace member of the root `package.json`) specifically so both the dashboard app and this package share one install of `@modelcontextprotocol/server` — do not remove the `workspaces` field or give this package its own separate `node_modules`/lockfile again.
 
 No arbitrary SQL, no generic table-query tool, no write operations. 10 fixed, bounded analytical tools. See the repo root's plan/PR description for the full design rationale; this file is setup + operational instructions only.
 
@@ -39,9 +40,11 @@ postgresql://mcp_analytics.giyspsmyitlygujelqjd:<password>@<pooler-host-from-das
 
 ## 4. Configure and build
 
+Run `npm install` from the **repo root** (this package is an npm workspace member, not a standalone install):
+
 ```bash
-cd mcp-server
 npm install
+cd mcp-server
 cp .env.example .env   # paste the connection string from step 3 into DATABASE_URL
 npm run build
 ```
@@ -73,9 +76,32 @@ ChatGPT connects over remote HTTPS only — it cannot reach a bare `localhost` M
 
 **Option A — OpenAI Secure MCP Tunnel (recommended for local/private use):** an outbound-only connector (`openai/tunnel-client`) that exposes this local HTTP server to ChatGPT/Codex/the Responses API without opening any inbound port or making the server public. Run `npm run start:http` here, then follow OpenAI's Secure MCP Tunnel setup to point a tunnel at `http://127.0.0.1:3001/mcp`; in ChatGPT, enable Developer Mode (Settings → Apps & Connectors), add a developer-mode app, choose **Tunnel** as the connection, and select the tunnel once it's listed.
 
-**Option B — hosted HTTPS (future, not built here):** deploy `dist/transports/http.js` somewhere reachable over HTTPS, with real authentication in front of it (the current `localhostHostValidation()`/`localhostOriginValidation()` guards only protect a loopback-bound server — a public deployment needs its own auth layer first). Not part of this task's scope.
+**Option B — the public HTTPS route (built, see below):** the dashboard's own Vercel deployment now also serves this same tool set at `/api/mcp` — the same URL works for ChatGPT's remote-MCP connector flow, if it's ever preferred over the Secure MCP Tunnel.
 
 This MCP server never calls the OpenAI API itself — it's a data/tool provider only.
+
+## 8. Connect claude.ai (Custom Connectors)
+
+claude.ai's Custom Connectors only support a real HTTPS URL — never `localhost`, never a tunnel-to-a-local-machine like OpenAI's. This repo's dashboard is already deployed on Vercel, so the same deployment now also serves this MCP server publicly at `/api/mcp` (see `src/app/api/mcp/route.ts` at the repo root) — no separate hosting needed.
+
+**One-time setup, in the Vercel project's dashboard (Settings → Environment Variables):**
+
+| Variable | Value |
+|---|---|
+| `MCP_DATABASE_URL` | The exact same `mcp_analytics` connection string from step 3 above. |
+| `MCP_AUTH_TOKEN` | A new, long, random secret you generate yourself (e.g. `openssl rand -hex 32`) — this is **not** the database password, it's what protects the public endpoint itself. |
+
+Redeploy after adding these (or trigger one via a new commit).
+
+**Why a token in the URL, not a header:** claude.ai's Custom Connector setup UI only has fields for an MCP server URL and, optionally, OAuth client credentials — there is no field to attach a custom header or a plain API key. Implementing full OAuth just to gate a personal read-only analytics tool wasn't worth the added complexity here, so `/api/mcp` instead checks a shared secret carried as a URL query parameter. A wrong or missing `?key=` gets a bare 404 (not 401/403), so an unauthenticated prober can't even confirm an MCP endpoint exists at that path.
+
+**Add the connector in claude.ai:** Settings → Connectors → Add custom connector → paste:
+
+```
+https://<your-vercel-domain>/api/mcp?key=<the MCP_AUTH_TOKEN you set above>
+```
+
+Treat that full URL as a secret — anyone who has it can call every tool this server exposes. Don't paste it into a shared doc, chat, or screenshot.
 
 ## Known pre-existing issue (unrelated, not fixed by this work)
 
