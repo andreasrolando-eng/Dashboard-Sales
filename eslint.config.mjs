@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Deno runtime, not Node/Next -- linted separately if at all.
     "supabase/functions/**",
+    // Standalone MCP server package, its own tsconfig/build -- not Next/React.
+    "mcp-server/**",
   ]),
 ]);
 
