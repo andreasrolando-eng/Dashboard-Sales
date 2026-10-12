@@ -44,28 +44,18 @@ export function DashboardChrome({ children, isAdmin }: { children: React.ReactNo
         onNavigate={() => setOpen(false)}
         isAdmin={isAdmin}
         collapsed={collapsed}
-        onToggleCollapse={() => writeCollapsed(!collapsed)}
+        onToggleCollapse={() => {
+          if (window.matchMedia("(min-width: 1024px)").matches) writeCollapsed(!collapsed);
+          else setOpen((o) => !o);
+        }}
       />
 
       <div
         className={cn(
-          "p-4 lg:px-10 lg:py-8 transition-[margin] duration-200",
-          collapsed ? "lg:ml-[72px]" : "lg:ml-[240px]"
+          "py-4 pr-4 pl-[88px] lg:py-8 lg:pr-10 transition-[padding] duration-200",
+          collapsed ? "lg:pl-[112px]" : "lg:pl-[280px]"
         )}
       >
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-2.5 cursor-pointer mb-4 lg:hidden bg-transparent border-none p-0"
-        >
-          <div className="flex flex-col gap-[3px]">
-            <div className="w-5 h-0.5 bg-[oklch(30%_0.01_260)]" />
-            <div className="w-5 h-0.5 bg-[oklch(30%_0.01_260)]" />
-            <div className="w-5 h-0.5 bg-[oklch(30%_0.01_260)]" />
-          </div>
-          <div className="text-[13px] font-semibold text-[oklch(30%_0.01_260)]">Menu</div>
-        </button>
-
         {children}
       </div>
     </div>
