@@ -32,7 +32,7 @@ export function Sidebar({ open, onNavigate, isAdmin }: { open: boolean; onNaviga
     >
       <div className="flex items-center gap-2.5 px-2 mb-8">
         {/* eslint-disable-next-line @next/next/no-img-element -- static asset from public/, no next/image usage elsewhere in the app */}
-        <img src="/ESB-logo.png" alt="ESB Analytics" className="w-[30px] h-[30px] rounded-lg object-contain" />
+        <img src="/isd-logo.png" alt="ESB Analytics" className="w-[30px] h-[30px] rounded-lg object-contain" />
         <div className="text-base font-bold text-text">ESB Analytics</div>
       </div>
 
