@@ -278,9 +278,9 @@ export async function getMenuPerformance(
 }
 
 /**
- * HPP & historical COGS per menu (fn_menu_hpp). Costing is strict as-of: each
- * day's sales use the BOM snapshot in force that day, never a later one. No
- * food cost % / margin yet -- the revenue basis isn't validated.
+ * HPP & COGS per menu (fn_menu_hpp). Closed months: ESB's actual COGS report
+ * (cogs_actual). Current month: BOM-snapshot estimate, strict as-of
+ * (cogs_estimate). No food cost % / margin yet -- revenue basis unvalidated.
  */
 export async function getMenuHpp(dateStart: string, dateEnd: string, outlet: string, category: string, categoryDetail: string) {
   const branch = resolveOutlet(outlet);
@@ -312,8 +312,8 @@ export async function getMenuBomDetail(menuId: string, asOf: string) {
 }
 
 /**
- * Theoretical ingredient usage (qty sold x BOM qty) plus how much of the
- * period's menu sales it could not account for (no BOM / no snapshot yet).
+ * Ingredient usage (ESB actuals for closed months, qty sold x BOM qty for the
+ * current month) plus how much of the period's menu sales it couldn't cover.
  */
 export async function getIngredientUsage(dateStart: string, dateEnd: string, outlet: string, category: string, categoryDetail: string) {
   const branch = resolveOutlet(outlet);

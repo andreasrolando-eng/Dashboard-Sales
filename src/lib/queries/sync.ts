@@ -71,6 +71,29 @@ export interface HppSyncResult {
   error?: string;
 }
 
+export interface CogsSyncResult {
+  ok: boolean;
+  status: "success" | "partial_success" | "failed";
+  from: string;
+  to: string;
+  partitions?: { total: number; ok: number; failed: number };
+  failures?: { date: string; branch: string; error: string }[];
+  error?: string;
+}
+
+/**
+ * Manual trigger for the sync-esb-cogs Edge Function in "auto" mode: pulls
+ * ESB's actual COGS for last month's (date, branch) partitions that are
+ * missing or still inside ESB's closing window. Admins only (enforced by the
+ * function). Resolves after publishing, so callers can refetch right away.
+ */
+export async function triggerCogsSync(): Promise<CogsSyncResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.functions.invoke("sync-esb-cogs", { body: { mode: "auto", trigger: "manual" } });
+  if (error) throw new Error(await functionErrorMessage(error));
+  return data as CogsSyncResult;
+}
+
 /**
  * Manual trigger for the sync-esb-hpp Edge Function (admins only -- the
  * function itself enforces that). `invoke` resolves only once the function

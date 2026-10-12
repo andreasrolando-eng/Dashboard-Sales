@@ -82,6 +82,16 @@ A menu showing **Belum ada snapshot** for old dates is expected: sales are
 only costed with a BOM snapshot taken on or before the sale date, and
 snapshots start the day the HPP sync first ran.
 
+## COGS for last month missing ("Menunggu sync COGS ESB")
+
+1. `select * from sync_log where job_name = 'sync-esb-cogs' order by id desc limit 5;`
+2. Which partitions were fetched and what ESB returned:
+   `select * from esb_cogs_fetch_log where sales_date >= date_trunc('month', now()) - interval '1 month' order by sales_date, branch_code;`
+   `unmatched_menu_rows > 0` = ESB lines that didn't match our sales (menu code changed, or a status we don't count).
+3. Re-run by hand for a range (closed months only): README §3, `sync-esb-cogs` curl.
+4. `cogs_sum = 0` for a whole closed month usually means ESB hasn't run its
+   closing yet -- re-run after closing (auto mode keeps re-fetching until day 20).
+
 ## Deploy checklist (Edge Function changes)
 
 Deploy the function *before* setting/rotating any secret it depends on, then
@@ -96,4 +106,5 @@ corrected (this exact mistake caused a real multi-day outage -- see
 - Materialized view refresh: `supabase/migrations/20260915090100_materialized_sales_daily.sql`
 - Edge Functions: `supabase/functions/sync-esb/`, `supabase/functions/sync-esb-hpp/` (shared auth guard in `supabase/functions/_shared/auth.ts`)
 - HPP schema, formula and RPCs: `supabase/migrations/20261013090000_menu_hpp.sql`
+- ESB actual COGS (closed months): `supabase/migrations/20261014090000_esb_cogs.sql`, `supabase/functions/sync-esb-cogs/`
 - Full incident history and reasoning: `PROGRESS.md`

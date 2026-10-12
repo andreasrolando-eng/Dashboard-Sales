@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMenuBomDetail, getMenuHpp } from "@/lib/queries/sales";
 import { getIsAdmin } from "@/lib/queries/meta";
-import { triggerHppSync } from "@/lib/queries/sync";
+import { triggerCogsSync, triggerHppSync } from "@/lib/queries/sync";
 import { fmtDateID, fmtRupiah } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ExportButtons } from "@/components/ui/export-buttons";
@@ -20,6 +20,7 @@ export const COVERAGE_LABEL: Record<CoverageStatus, string> = {
   no_bom: "Tanpa BOM",
   package: "Paket (belum dihitung)",
   unmapped: "Tidak ada di master ESB",
+  esb_pending: "Menunggu sync COGS ESB",
 };
 
 const COVERAGE_STYLE: Record<CoverageStatus, { bg: string; color: string }> = {
@@ -29,21 +30,23 @@ const COVERAGE_STYLE: Record<CoverageStatus, { bg: string; color: string }> = {
   no_bom: { bg: "oklch(93% 0.005 260)", color: "oklch(45% 0.01 260)" },
   package: { bg: "oklch(93% 0.005 260)", color: "oklch(45% 0.01 260)" },
   unmapped: { bg: "var(--color-negative-soft)", color: "var(--color-negative)" },
+  esb_pending: { bg: "oklch(94% 0.06 85)", color: "oklch(48% 0.12 70)" },
 };
 
-type SortKey = "menu_name" | "qty" | "avg_selling_price" | "latest_hpp" | "cogs" | "uncosted_qty";
+type SortKey = "menu_name" | "qty" | "avg_selling_price" | "latest_hpp" | "cogs_actual" | "cogs_estimate" | "uncosted_qty";
 
 const COLUMNS: { key: SortKey | null; label: string }[] = [
   { key: "menu_name", label: "Menu" },
   { key: "qty", label: "Qty" },
   { key: "avg_selling_price", label: "Harga Jual Rata-rata" },
   { key: "latest_hpp", label: "HPP Terkini" },
-  { key: "cogs", label: "COGS Historis" },
+  { key: "cogs_actual", label: "COGS Aktual (ESB)" },
+  { key: "cogs_estimate", label: "COGS Estimasi (BOM)" },
   { key: "uncosted_qty", label: "Qty Tanpa HPP" },
   { key: null, label: "Status" },
 ];
 
-const GRID = "grid grid-cols-[24px_2fr_0.7fr_1.1fr_1.1fr_1.2fr_0.9fr_1.3fr] gap-2";
+const GRID = "grid grid-cols-[24px_2fr_0.7fr_1.1fr_1.1fr_1.2fr_1.2fr_0.9fr_1.3fr] gap-2";
 
 function fmtQty(n: number | null | undefined) {
   return n == null ? "—" : n.toLocaleString("id-ID", { maximumFractionDigits: 2 });
@@ -75,9 +78,9 @@ export function MenuHppPanel({
   dateEnd: string;
 }) {
   const queryClient = useQueryClient();
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "cogs", dir: "desc" });
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "qty", dir: "desc" });
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing] = useState<"hpp" | "cogs" | null>(null);
   const [syncMessage, setSyncMessage] = useState<{ tone: "ok" | "warn" | "error"; text: string } | null>(null);
 
   const hppQuery = useQuery({
@@ -99,8 +102,36 @@ export function MenuHppPanel({
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "menu_name" ? "asc" : "desc" }));
   }
 
+  async function refetchAll() {
+    // invoke() only resolves after the function has published, so a refetch now sees the new data.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["menu-hpp"] }),
+      queryClient.invalidateQueries({ queryKey: ["menu-bom-detail"] }),
+      queryClient.invalidateQueries({ queryKey: ["ingredient-usage"] }),
+    ]);
+  }
+
+  async function handleCogsSync() {
+    setSyncing("cogs");
+    setSyncMessage(null);
+    try {
+      const result = await triggerCogsSync();
+      const p = result.partitions ?? { total: 0, ok: 0, failed: 0 };
+      setSyncMessage(
+        result.status === "partial_success"
+          ? { tone: "warn", text: `COGS ESB sebagian berhasil: ${p.failed} dari ${p.total} tanggal×outlet gagal (${result.failures?.[0]?.error ?? ""}).` }
+          : { tone: "ok", text: p.total === 0 ? "COGS ESB bulan lalu sudah lengkap, tidak ada yang perlu diambil." : `COGS ESB diperbarui (${p.ok} tanggal×outlet).` }
+      );
+      await refetchAll();
+    } catch (err) {
+      setSyncMessage({ tone: "error", text: err instanceof Error ? err.message : "Sync COGS ESB gagal" });
+    } finally {
+      setSyncing(null);
+    }
+  }
+
   async function handleSync() {
-    setSyncing(true);
+    setSyncing("hpp");
     setSyncMessage(null);
     try {
       const result = await triggerHppSync();
@@ -112,29 +143,25 @@ export function MenuHppPanel({
       } else {
         setSyncMessage({ tone: "ok", text: `HPP diperbarui (${result.menus ?? 0} menu, ${result.boms?.total ?? 0} BOM).` });
       }
-      // invoke() only resolves after the function has published, so a refetch now sees the new snapshot.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["menu-hpp"] }),
-        queryClient.invalidateQueries({ queryKey: ["menu-bom-detail"] }),
-        queryClient.invalidateQueries({ queryKey: ["ingredient-usage"] }),
-      ]);
+      await refetchAll();
     } catch (err) {
       setSyncMessage({ tone: "error", text: err instanceof Error ? err.message : "Sync HPP gagal" });
     } finally {
-      setSyncing(false);
+      setSyncing(null);
     }
   }
 
   const exportSpec: ExportSpec<MenuHppRow> = {
     fileBaseName: "hpp-per-menu",
     title: "HPP per Menu",
-    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | HPP dihitung per tanggal jual (snapshot BOM yang berlaku)`,
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | COGS aktual ESB untuk bulan yang sudah tutup, estimasi BOM untuk bulan berjalan`,
     columns: [
       { header: "Menu", accessor: (r) => r.menu_name, width: 26 },
       { header: "Qty", accessor: (r) => r.qty, format: "number", align: "right", width: 10 },
       { header: "Harga Jual Rata-rata", accessor: (r) => r.avg_selling_price ?? 0, format: "currency", align: "right", width: 16 },
       { header: "HPP Terkini", accessor: (r) => (r.latest_cost_status === "ok" ? r.latest_hpp ?? 0 : null), format: "currency", align: "right", width: 14 },
-      { header: "COGS Historis", accessor: (r) => r.cogs, format: "currency", align: "right", width: 16 },
+      { header: "COGS Aktual (ESB)", accessor: (r) => r.cogs_actual, format: "currency", align: "right", width: 16 },
+      { header: "COGS Estimasi (BOM)", accessor: (r) => r.cogs_estimate, format: "currency", align: "right", width: 16 },
       { header: "Qty Tanpa HPP", accessor: (r) => r.uncosted_qty, format: "number", align: "right", width: 12 },
       { header: "Status", accessor: (r) => COVERAGE_LABEL[r.cost_coverage_status], width: 22 },
     ],
@@ -152,14 +179,26 @@ export function MenuHppPanel({
         <div className="flex flex-wrap items-center gap-2.5">
           <ExportButtons spec={exportSpec} dateStart={dateStart} dateEnd={dateEnd} rows={rows} disabled={rows.length === 0} />
           {adminQuery.data && (
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={syncing}
-              className="px-3.5 py-1.5 rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer disabled:opacity-60 whitespace-nowrap"
-            >
-              {syncing ? "Menyinkronkan HPP..." : "Sync HPP"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleCogsSync}
+                disabled={syncing !== null}
+                title="Ambil COGS aktual ESB untuk bulan lalu"
+                className="px-3.5 py-1.5 rounded-lg border border-border-form bg-surface text-text text-xs font-semibold cursor-pointer disabled:opacity-60 whitespace-nowrap"
+              >
+                {syncing === "cogs" ? "Mengambil COGS ESB..." : "Sync COGS ESB"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSync}
+                disabled={syncing !== null}
+                title="Ambil HPP terkini dari BOM ESB"
+                className="px-3.5 py-1.5 rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer disabled:opacity-60 whitespace-nowrap"
+              >
+                {syncing === "hpp" ? "Menyinkronkan HPP..." : "Sync HPP"}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -174,8 +213,9 @@ export function MenuHppPanel({
       )}
 
       <div className="text-xs text-text-secondary bg-accent-soft rounded-lg px-3 py-2 mb-3.5">
-        Food cost % dan margin belum ditampilkan karena basis revenue (sebelum/sesudah diskon, pajak, service) belum
-        tervalidasi. COGS hanya mencakup qty yang punya HPP lengkap pada tanggal jualnya.
+        COGS Aktual = laporan COGS ESB untuk bulan yang sudah tutup. COGS Estimasi = HPP dari BOM untuk bulan berjalan
+        (snapshot harian, belum final). Qty dengan biaya bahan tidak lengkap tidak dihitung. Food cost % dan margin
+        belum ditampilkan karena basis revenue belum tervalidasi.
       </div>
 
       {hppQuery.isLoading ? (
@@ -185,7 +225,7 @@ export function MenuHppPanel({
       ) : rows.length === 0 ? (
         <div className="text-sm text-text-secondary py-4">Tidak ada penjualan menu untuk filter ini.</div>
       ) : (
-        <div className="min-w-[880px]">
+        <div className="min-w-[1000px]">
           <div className={`${GRID} text-[11px] font-semibold text-text-secondary pb-2.5 px-1 border-b border-border-subtle`}>
             <div />
             {COLUMNS.map((c) =>
@@ -228,8 +268,9 @@ export function MenuHppPanel({
                       fmtRupiah(m.latest_hpp)
                     )}
                   </div>
+                  <div>{m.cogs_actual > 0 ? fmtRupiah(m.cogs_actual) : "—"}</div>
                   <div>
-                    {fmtRupiah(m.cogs)}
+                    {m.cogs_estimate > 0 ? fmtRupiah(m.cogs_estimate) : "—"}
                     {m.uncosted_qty > 0 && m.costed_qty > 0 && <span className="text-[11px] text-text-tertiary"> (parsial)</span>}
                   </div>
                   <div className={m.uncosted_qty > 0 ? "text-[oklch(48%_0.12_70)] font-semibold" : ""}>{fmtQty(m.uncosted_qty)}</div>

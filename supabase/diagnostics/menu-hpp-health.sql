@@ -37,3 +37,15 @@ where l.snapshot_date = (select max(snapshot_date) from esb_bom_lines)
   and fn_hpp_line_cost(l.qty, l.convertion_qty, l.yield_percent, l.last_hpp) is null
 group by l.product_id, l.product_name, l.uom_name, l.last_hpp
 order by boms desc;
+
+-- 6. ESB actual COGS sync runs
+select id, started_at, status, rows_synced, error_message
+from sync_log where job_name = 'sync-esb-cogs' order by id desc limit 10;
+
+-- 7. ESB COGS partitions per month: fetched vs with cost vs unmatched lines
+select date_trunc('month', sales_date)::date as month,
+       count(*) as partitions,
+       count(*) filter (where cogs_sum > 0) as with_cogs,
+       sum(unmatched_menu_rows) as unmatched_menu_rows,
+       max(fetched_at) as last_fetch
+from esb_cogs_fetch_log group by 1 order by 1 desc;

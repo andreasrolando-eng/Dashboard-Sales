@@ -402,6 +402,10 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.sync-esb-cogs]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
