@@ -110,7 +110,7 @@ export function SalesTab() {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Total Revenue"
           value={fmtRupiah(displayRevenue)}
@@ -135,7 +135,7 @@ export function SalesTab() {
         />
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5 mb-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5 mb-4">
         <ChartCard title="Tren Revenue" fullWidth>
           <SimpleBarChart data={trendBars} height={220} dateAxis valueFormatter={fmtRupiah} labelFormatter={fmtDateFullID} />
         </ChartCard>
@@ -155,7 +155,7 @@ export function SalesTab() {
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5">
         <ChartCard title="Top Seller">
           <ProductList products={topSellers} />
         </ChartCard>

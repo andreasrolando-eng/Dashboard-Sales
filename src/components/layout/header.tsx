@@ -34,7 +34,7 @@ export function Header() {
         <div className="text-2xl font-bold text-text">{TITLE_MAP[tab]}</div>
         <div className="text-[13px] text-text-secondary mt-1">Data terakhir diperbarui: {lastSyncedLabel}</div>
       </div>
-      <div className="flex items-start gap-2.5">
+      <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-start">
         <FullReportExportButton />
         <ManualSyncButton />
       </div>

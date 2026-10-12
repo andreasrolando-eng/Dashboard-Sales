@@ -65,7 +65,7 @@ export function MembershipTab() {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Total Member"
           value={fmtNum(summary.total_members)}
@@ -85,7 +85,7 @@ export function MembershipTab() {
         />
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5 mb-6">
         <ChartCard title="Member Baru per Minggu">
           <SimpleBarChart data={weeklyBars} height={140} showAxisLabels valueFormatter={fmtNum} />
         </ChartCard>
