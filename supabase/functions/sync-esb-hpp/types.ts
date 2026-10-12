@@ -35,13 +35,6 @@ export interface EsbBomLineRecord {
   subtitution?: unknown[] | null;
 }
 
-export interface EsbCoreBody<T> {
-  status?: string;
-  code?: string;
-  message?: string;
-  result?: T | null;
-}
-
 // Payload shapes for fn_hpp_publish (see supabase/migrations/20261013090000_menu_hpp.sql).
 export interface MenuRow {
   menu_id: number;

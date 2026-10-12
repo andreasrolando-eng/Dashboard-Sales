@@ -1,5 +1,6 @@
 import type { Database } from "@/types/database.types";
 import type { SalesBill } from "@/lib/queries/sales";
+import { todayLocalISO } from "@/lib/format";
 import { CHANNELS, dateRange, MEMBERS, MOCK_BOMS, OUTLETS, PAYMENT_METHODS, PEAK_HOUR_WEIGHT, PEAK_HOURS, PRODUCTS, PROMOTIONS, seededRandom } from "./fixtures";
 
 type SalesDailyRow = Database["public"]["Views"]["v_sales_daily_outlet"]["Row"];
@@ -522,6 +523,8 @@ export function mockMenuHpp(
         latest_snapshot_date: dateEnd >= MOCK_HPP_SNAPSHOT_DATE ? MOCK_HPP_SNAPSHOT_DATE : null,
         latest_cost_status: dateEnd >= MOCK_HPP_SNAPSHOT_DATE ? status : null,
         cogs: 0,
+        cogs_actual: 0,
+        cogs_estimate: 0,
         costed_qty: 0,
         uncosted_qty: 0,
         cost_coverage_status: "complete",
@@ -531,6 +534,9 @@ export function mockMenuHpp(
     if (costed) {
       e.costed_qty += qty;
       e.cogs += qty * (hpp ?? 0);
+      // Mirrors the real split: closed months are ESB actuals, the current month a BOM estimate.
+      if (r.sales_date < `${todayLocalISO().slice(0, 7)}-01`) e.cogs_actual += qty * (hpp ?? 0);
+      else e.cogs_estimate += qty * (hpp ?? 0);
     } else {
       e.uncosted_qty += qty;
       e.cost_coverage_status = !hasSnapshot ? "no_historical_cost" : status === "ok" ? "complete" : status;

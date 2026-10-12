@@ -1,9 +1,10 @@
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { identifyCaller } from "../_shared/auth.ts";
+import { identifyCaller, isAdminEmail } from "../_shared/auth.ts";
 import { fetchAllMenus } from "./esb-oms-client.ts";
-import { EsbCoreClient } from "./esb-core-client.ts";
-import { mapWithConcurrency } from "./http.ts";
+import { EsbCoreClient } from "../_shared/esb-core-client.ts";
+import { mapWithConcurrency } from "../_shared/http.ts";
+import { fetchBomLines } from "./bom.ts";
 import type { BomFailure, BomLineRow, EsbMenuRecord, MenuRow } from "./types.ts";
 
 const JOB_NAME = "sync-esb-hpp";
@@ -44,12 +45,6 @@ function toMenuRows(records: EsbMenuRecord[]): MenuRow[] {
   return [...byId.values()];
 }
 
-async function isAdmin(client: SupabaseClient, email: string | null): Promise<boolean> {
-  if (!email) return false;
-  const { data } = await client.from("allowed_users").select("is_admin").eq("email", email.toLowerCase()).maybeSingle();
-  return data?.is_admin === true;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -57,7 +52,7 @@ Deno.serve(async (req) => {
 
   const caller = await identifyCaller(req, client);
   if (!caller) return json({ ok: false, error: "Unauthorized" }, 401);
-  if (caller.via === "user" && !(await isAdmin(client, caller.email))) {
+  if (caller.via === "user" && !(await isAdminEmail(client, caller.email))) {
     return json({ ok: false, error: "Hanya admin yang bisa menjalankan sync HPP" }, 403);
   }
 
@@ -108,7 +103,7 @@ Deno.serve(async (req) => {
         return;
       }
       try {
-        lines.push(...(await core.fetchBomLines(bomId)));
+        lines.push(...(await fetchBomLines(core, bomId)));
       } catch (err) {
         failures.push({ bomId, error: err instanceof Error ? err.message : String(err) });
       }

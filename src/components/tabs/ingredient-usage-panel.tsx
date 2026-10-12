@@ -31,10 +31,10 @@ function compare(a: UsageRow, b: UsageRow, key: SortKey) {
 }
 
 /**
- * Theoretical raw-material usage = qty sold x BOM qty, using the BOM in force
- * on each sales day. Grouped per (ingredient, UOM): the ESB API gives no base
- * unit to safely convert across UOMs. This is what the recipes say was used,
- * not actual stock movement.
+ * Raw-material usage per (ingredient, UOM). Closed months come from ESB's
+ * actual COGS report; the current month is theoretical (qty sold x BOM qty,
+ * BOM in force on each sales day). No unit conversion across UOMs -- the ESB
+ * APIs give no base unit to convert with.
  */
 export function IngredientUsagePanel({
   outlet,
@@ -72,8 +72,8 @@ export function IngredientUsagePanel({
 
   const exportSpec: ExportSpec<UsageRow> = {
     fileBaseName: "pemakaian-bahan-baku",
-    title: "Pemakaian Bahan Baku (Teoritis)",
-    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | Qty terjual x qty bahan di BOM yang berlaku per tanggal jual`,
+    title: "Pemakaian Bahan Baku",
+    subtitle: `${fmtDateID(dateStart)} - ${fmtDateID(dateEnd)} | Bulan tutup: aktual ESB; bulan berjalan: qty terjual x qty bahan BOM`,
     columns: [
       { header: "Bahan", accessor: (r) => r.product_name, width: 28 },
       { header: "Kode", accessor: (r) => r.product_code, width: 14 },
@@ -90,7 +90,9 @@ export function IngredientUsagePanel({
       <div className="flex flex-wrap justify-between items-start gap-3 mb-3">
         <div>
           <div className="text-sm font-bold text-text">Pemakaian Bahan Baku</div>
-          <div className="text-xs text-text-secondary mt-0.5">Teoritis berdasarkan BOM, bukan pergerakan stok aktual</div>
+          <div className="text-xs text-text-secondary mt-0.5">
+            Bulan yang sudah tutup: pemakaian &amp; biaya aktual dari laporan COGS ESB. Bulan berjalan: teoritis dari BOM.
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <input
@@ -107,7 +109,8 @@ export function IngredientUsagePanel({
       {coverage && coverage.menu_qty_not_counted > 0 && (
         <div className="text-xs text-[oklch(48%_0.12_70)] bg-[oklch(96%_0.04_85)] rounded-lg px-3 py-2 mb-3.5">
           {fmtQty(coverage.menu_qty_not_counted)} dari {fmtQty(coverage.menu_qty_total)} porsi menu terjual tidak ikut dihitung
-          (menu tanpa BOM, paket, belum ada snapshot BOM pada tanggal jual, atau tidak ada di master menu ESB).
+          (menu tanpa resep/BOM, paket, COGS ESB belum di-sync, belum ada snapshot BOM pada tanggal jual, atau tidak ada
+          di master menu ESB).
         </div>
       )}
 
@@ -140,7 +143,7 @@ export function IngredientUsagePanel({
           </div>
           {rows.map((r) => (
             <div
-              key={`${r.product_id}|${r.uom_name}`}
+              key={`${r.product_name ?? r.product_id}|${r.uom_name}`}
               className={`${GRID} text-[13px] py-2.5 px-1 border-b border-border-hairline items-center`}
             >
               <div>

@@ -95,7 +95,27 @@ curl -sS -X POST 'https://<project-ref>.supabase.co/functions/v1/sync-esb-hpp'  
 ```
 
 200 = all BOMs published, 207 = partial (failed BOMs keep their previous
-snapshot), 409 = another HPP run is in progress. The HPP formula in
+snapshot), 409 = another HPP run is in progress.
+
+#### Actual COGS from ESB reports (`sync-esb-cogs`)
+
+For **closed months** the dashboard uses ESB Core's own COGS reports
+(`report/sales-menu-cogs` + `report/sales-menu-cogs-detail`) instead of the
+BOM estimate; the current month stays a BOM estimate because ESB only
+finalises COGS at month-end closing. Same ESB Core secrets as above; the
+account needs report access F.35 and F.145. Migration:
+`20261014090000_esb_cogs.sql`.
+
+```bash
+npx supabase functions deploy sync-esb-cogs
+# optional: ESB_COGS_CONCURRENCY (3), ESB_COGS_TIME_BUDGET_MS (120000), ESB_COGS_REFETCH_UNTIL_DAY (20)
+# backfill (closed months only, max 62 days per call; repeat until no 207):
+curl -sS -X POST 'https://<project-ref>.supabase.co/functions/v1/sync-esb-cogs'   -H 'Content-Type: application/json' -H 'x-sync-secret: <random-string>'   -d '{"dateFrom":"2026-07-01","dateTo":"2026-08-31"}'
+```
+
+Cron `sync-esb-cogs-daily` (04:00 WIB) runs `{"mode":"auto"}`: fetches last
+month's (date, outlet) partitions never fetched, and re-fetches stale ones
+until day 20 of the current month to pick up ESB's closing corrections. The HPP formula in
 `fn_hpp_line_cost` is **provisional** until checked against ESB's own HPP
 figures -- see the comment on that function before trusting the numbers.
 

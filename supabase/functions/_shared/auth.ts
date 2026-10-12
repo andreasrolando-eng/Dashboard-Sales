@@ -45,3 +45,10 @@ export async function identifyCaller(req: Request, client: SupabaseClient): Prom
 export async function isAuthorized(req: Request, client: SupabaseClient): Promise<boolean> {
   return (await identifyCaller(req, client)) !== null;
 }
+
+/** allowed_users.is_admin for a verified user's email (service-role client). */
+export async function isAdminEmail(client: SupabaseClient, email: string | null): Promise<boolean> {
+  if (!email) return false;
+  const { data } = await client.from("allowed_users").select("is_admin").eq("email", email.toLowerCase()).maybeSingle();
+  return data?.is_admin === true;
+}

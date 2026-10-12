@@ -1,4 +1,4 @@
-import { fetchWithRetry } from "./http.ts";
+import { fetchWithRetry } from "../_shared/http.ts";
 import type { EsbGetMenuBody, EsbMenuRecord } from "./types.ts";
 
 // Same host and static token as the sales sync (supabase/functions/sync-esb/esb-client.ts).

@@ -221,9 +221,11 @@ export interface Database {
           latest_snapshot_date: string | null;
           latest_cost_status: "ok" | "incomplete_cost" | "no_bom" | "package" | null;
           cogs: number;
+          cogs_actual: number;
+          cogs_estimate: number;
           costed_qty: number;
           uncosted_qty: number;
-          cost_coverage_status: "complete" | "incomplete_cost" | "no_bom" | "package" | "no_historical_cost" | "unmapped";
+          cost_coverage_status: "complete" | "incomplete_cost" | "no_bom" | "package" | "no_historical_cost" | "unmapped" | "esb_pending";
         }[];
       };
       fn_menu_bom_detail: {
