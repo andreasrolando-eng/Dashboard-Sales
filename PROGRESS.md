@@ -2,14 +2,15 @@
 
 Acuan progress proyek — dipakai buat lanjutin kerjaan di sesi berikutnya. Setup/deploy step-by-step ada di `README.md`; file ini fokus ke **apa yang sudah beres, keputusan/asumsi apa yang diambil, dan apa yang masih perlu dikerjakan**. Diupdate tiap ada perubahan signifikan (skema baru, keputusan formula/field, fitur baru).
 
-_Terakhir diupdate: 21 Agustus 2026._
+_Terakhir diupdate: 12 Oktober 2026._
 
 ## Stack & Arsitektur
 
 - **App**: Next.js 16 (App Router, Turbopack) di `src/`, TypeScript, Tailwind CSS v4, TanStack Query, Recharts. Target hosting: Vercel (belum di-deploy).
 - **Backend**: Supabase Postgres + Auth + Edge Functions (Deno) + `pg_cron`/`pg_net`.
 - **Supabase project**: sudah **linked & live**. Project ref `giyspsmyitlygujelqjd`, URL `https://giyspsmyitlygujelqjd.supabase.co`.
-- **ESB OMS API**: sudah terhubung, base URL `https://stg7.esb.co.id/api-fnb-backend/web`, endpoint `/corev1/sales/sales-information`.
+- **ESB OMS API**: sudah terhubung, base URL `https://stg7.esb.co.id/api-fnb-backend/web` (secret `ESB_API_BASE_URL`), endpoint `/corev1/sales/sales-information` dan `/corev1/master/get-menu`.
+- **ESB Core API** (Oktober 2026): host terpisah dengan login username/password (`POST /auth/login` → accessToken), secret `ESB_CORE_BASE_URL` / `ESB_CORE_USERNAME` / `ESB_CORE_PASSWORD`. Dipakai untuk BOM detail dan laporan COGS. **Jangan tertukar dengan `ESB_API_BASE_URL`** — 12 Okt sempat dua kali ketimpa URL Core, yang bikin get-menu 404 dan hampir mematikan sync sales malam itu. Setiap habis ubah secret, cek hash-nya lewat `npx supabase secrets list` (hash `ESB_API_BASE_URL` yang benar diawali `0ca694be`).
 
 ## Yang Sudah Beres
 
@@ -57,7 +58,7 @@ _Terakhir diupdate: 21 Agustus 2026._
   - **MFA (TOTP) dan halaman `/account/security` DIHAPUS TOTAL** — sempat dibikin 16 September 2026, dicabut lagi sehari kemudian karena ganti ke SSO doang (keputusan eksplisit user, bukan bug). File-file lama (`login-form.tsx`, `mfa-challenge-form.tsx`, `src/lib/supabase/mfa.ts`, `src/app/account/security/`) sudah dihapus dari repo, bukan cuma di-disable.
   - **Setup yang BELUM bisa dikerjain lewat kode** (butuh akses dashboard/akun eksternal): (1) bikin OAuth Client ID di Google Cloud Console (Web application, authorized redirect URI = `https://giyspsmyitlygujelqjd.supabase.co/auth/v1/callback`), (2) paste Client ID + Secret ke Supabase Dashboard → Authentication → Providers → Google, aktifin, (3) **Authentication → URL Configuration**: Site URL + Redirect URLs masih perlu diisi domain production yang bener (default Supabase masih `http://localhost:3000`, kena pas testing prod — ke-track sebagai gejala "abis login malah ke localhost").
 - **"Ingat saya" di login** — checkbox di login page, default tercentang (behavior default gak berubah). `@supabase/ssr` yang kepasang di project ini **selalu maksa cookie sesi ~400 hari** apapun `cookieOptions` yang dikasih (lihat komentar di `src/lib/supabase/remember-me.ts`), jadi gak bisa dikontrol lewat config langsung. Di-enforce sebagai gate terpisah level aplikasi: pas checkbox di-uncheck, sebelum redirect ke Google, `google-signin-button.tsx` nulis cookie hint sementara (`oauth_remember`, 5 menit) yang dibaca `auth/callback/route.ts` abis OAuth selesai buat nulis 2 cookie asli — `remember_me=0` (persistent, nandain preferensi) + `session_active` (session cookie asli, tanpa Max-Age). Begitu browser ditutup, `session_active` ilang tapi `remember_me=0` masih ada → `rememberMeExpired()` kedeteksi di `src/proxy.ts`, paksa sign-out beneran (revoke token), redirect ke `/login`.
-- **Favicon & logo** ganti ke logo asli (`public/ESB-logo.png`) — `src/app/icon.png` + `apple-icon.png` (Next.js file-convention, auto-generate `<link rel="icon">`), dan placeholder kotak warna di sidebar/halaman login diganti `<img>` ke logo yang sama.
+- **Favicon & logo** — sekarang logo ISD (`public/isd-logo.png`, Oktober 2026; sebelumnya `public/ESB-logo.png`) — `src/app/icon.png` + `apple-icon.png` (Next.js file-convention, auto-generate `<link rel="icon">`), dan placeholder kotak warna di sidebar/halaman login diganti `<img>` ke logo yang sama.
 - 4 tab: Overview, Sales, Membership, Marketing — semua connect ke Supabase views/RPC asli (bukan dummy lagi).
 - **Semua angka Rupiah eksplisit** (`Rp804.627.630`, bukan `Rp804.6jt`) — formatter `fmtRupiah` di `src/lib/format.ts`. `fmtJuta`/`fmtRibu` sudah dihapus total.
 - KPI **"Nett Sales"** ada di sebelah "Total Revenue" (tab Overview & Sales).
@@ -74,6 +75,29 @@ _Terakhir diupdate: 21 Agustus 2026._
   - **Beneran di-paginate server-side** (`getSalesBills` di `src/lib/queries/sales.ts`, pakai `.range()` + `count: "exact"`), bukan "tampilkan N teratas" kayak panel lain — 1 bulan buat "Semua Outlet" bisa ribuan baris, jauh di atas `max_rows: 1000` PostgREST.
   - Komponen `sales-bill-list-panel.tsx` di-remount pakai `key={outlet|dateStart|dateEnd}` dari parent tiap filter ganti, biar `page` balik ke 1 tanpa perlu `useEffect` + `setState` (itu kena lint error `react-hooks/set-state-in-effect` — cascading render).
   - **Gotcha TypeScript yang kejadian pas nulis `getSalesBills`**: nge-`.map()` inline buat convert `grand_total: number | null` → `number` LANGSUNG di dalam `return` (yang posisinya kena contextual typing dari signature `Promise<{rows: SalesBill[]...}>`) bikin `data` ke-infer jadi `never` (`tsc` error "Spread types may only be created from object types"), padahal query-nya sendiri valid (kebukti kalau cuma `console.log(data)` gak ada error). Fix-nya: pindahin `.map()` ke helper function terpisah yang punya parameter type eksplisit sendiri (`toSalesBills(rows: {...}[])`), sama pola kayak `sumCategoryRevenue` yang udah ada duluan.
+
+### 4. HPP, COGS & pemakaian bahan baku (Oktober 2026)
+Dua panel baru di tab Sales: **"HPP & Margin per Menu"** (HPP terkini, COGS aktual ESB, COGS estimasi BOM, qty tanpa HPP, status, klik menu → rincian bahan + substitusi) dan **"Pemakaian Bahan Baku"** (total pemakaian per bahan + estimasi biaya). Tombol "Sync HPP" & "Sync COGS ESB" cuma muncul untuk admin, dan di-enforce juga di Edge Function.
+
+**Dua sumber data, dibagi per bulan (keputusan user: "bulan sebelumnya saja"):**
+- **Bulan yang sudah tutup → COGS aktual dari laporan ESB Core** (`report/sales-menu-cogs` mode *Package Summary* + `report/sales-menu-cogs-detail` mode *recap*). Edge Function `sync-esb-cogs`, migration `20261014090000_esb_cogs.sql`. ESB baru menghitung COGS saat closing bulanan, jadi COGS ESB bulan berjalan = 0 dan tidak dipakai.
+- **Bulan berjalan → estimasi dari snapshot BOM harian.** Edge Function `sync-esb-hpp` (get-menu + `/product/bom/detail/{bomID}`), migration `20261013090000_menu_hpp.sql`. Snapshot pertama 12 Okt 2026.
+
+**Keputusan penting:**
+- **Single-company.** Tidak ada `company_id` — project memang belum multi-company (dicek di semua migration/function); multi-company jadi proyek terpisah untuk semua data sekaligus.
+- **HPP historis strict as-of.** Penjualan hari D hanya pakai snapshot ≤ D, tidak pernah snapshot masa depan. Penjualan sebelum snapshot pertama → `no_historical_cost`. Mapping menu→BOM ikut disimpan per snapshot, jadi ganti mapping tidak mengubah angka lama.
+- **Biaya 0 bukan biaya valid.** Bahan dengan `lastHpp` 0/null (BOM) atau `value_total` 0 (laporan ESB) → menu `incomplete_cost`, qty-nya masuk `uncosted_qty`, tidak dihitung ke COGS.
+- **Rumus HPP BOM (`fn_hpp_line_cost`, formula_version 1):** `qty × convertion_qty × last_hpp`, yield diabaikan. Cocok dengan ESB untuk 3 menu sampel (NASI GORENG, CHICKEN CHEESE KATSU, Coffeato). Data mentah BOM disimpan per hari (`esb_bom_lines`), jadi rumus bisa dikoreksi + dihitung ulang tanpa fetch ulang.
+- **Publish atomik.** Edge Function → satu RPC plpgsql per publish (`fn_hpp_publish`, `fn_esb_cogs_publish`) dengan advisory lock. BOM/partisi yang gagal di-fetch tidak menimpa data valid sebelumnya; run berstatus `partial_success` (HTTP 207 → alert existing ikut jalan). `sync_log` sekarang menerima `partial_success`; `v_last_sync` difilter ke job `sync-esb` saja.
+- **Food cost % & margin sengaja belum ditampilkan** — basis revenue `v_sales_product_daily` (= `sum(line total)`) belum dipastikan sebelum/sesudah diskon, pajak, service.
+- **Pemakaian bahan dikelompokkan per (nama bahan, satuan)** — laporan ESB tidak punya ID bahan, dan API tidak memberi satuan dasar untuk konversi lintas UOM.
+- **HPP paket, extras/modifier, HPP per outlet** — di luar scope.
+
+**Status data (12 Okt 2026, staging):**
+- Snapshot HPP: 1.055 menu (889 tanpa BOM, 124 paket, 31 lengkap, 11 belum lengkap). Semua menu terjual 30 hari terakhir ter-mapping ke master menu ESB (`menuID` = `menu_id` sales).
+- Backfill COGS ESB 1 Jul – 30 Sep: 80 partisi tanggal×outlet, 0 gagal. IET 2 Sep = Rp59.328, sama dengan laporan ESB. Tapi COGS ESB staging Jul–Agu = 0 semua, dan Sep hanya CHICKEN CHEESE KATSU yang tidak lengkap (Nasi Putih hpp 0) — jadi COGS Aktual tampil kosong di staging. Ini sesuai aturan, bukan bug.
+
+**Cron baru:** `sync-esb-hpp-daily` 05:00 WIB, `sync-esb-cogs-daily` 04:00 WIB (mode auto: partisi bulan lalu yang belum di-fetch, plus re-fetch yang basi sampai tanggal 20 untuk menangkap koreksi closing ESB).
 
 ## Yang Masih Perlu Dikerjakan / Dicek
 
@@ -107,10 +131,19 @@ _Terakhir diupdate: 21 Agustus 2026._
    - **`RUNBOOK.md`** baru — checklist insiden operasional, distilled dari histori item 1 di atas.
    - **Belum dikerjakan** (butuh akses dashboard Vercel/Supabase atau akun eksternal, gak bisa lewat kode): matiin Vercel Deployment Protection (item 4), setup healthchecks.io (item 5), aktifin `alert_webhook_url` vault secret (`20260915090000_sync_alerting.sql`), cek retention PITR/backup di Supabase dashboard. **ESB base URL sengaja TIDAK diubah dari staging** (item 6) — permintaan eksplisit, tunggu konfirmasi pemilik integrasi ESB dulu.
 
+9. **HPP / COGS — yang masih terbuka (Oktober 2026)**
+   - **Tanggal closing COGS bulanan ESB** belum dikonfirmasi; sementara re-fetch sampai tanggal 20 (`ESB_COGS_REFETCH_UNTIL_DAY`).
+   - **`convertionQty` belum teruji** (semua 1 di staging) dan **1 baris BOM punya `yieldPercent` 2** — konfirmasi ke ESB apakah yield ikut dihitung.
+   - **Basis revenue** perlu divalidasi sebelum food cost % & margin ditampilkan (laporan ESB punya `total`, `discountTotal`, `margin` yang bisa dipakai sebagai pembanding).
+   - **Baris laporan ESB yang tidak cocok dengan sales kita** (Jul 34, Agu 12, Sep 7 — `unmatched_menu_rows` di `esb_cogs_fetch_log`): kemungkinan beda status transaksi / kode menu berubah.
+   - **Panel HPP & Pemakaian Bahan belum dicek di layar HP.**
+   - Query diagnosa: `supabase/diagnostics/menu-hpp-health.sql`; langkah troubleshooting: `RUNBOOK.md`.
+
 ## Referensi Cepat
 
-- Migration terbaru: `supabase/migrations/20260821100000_nett_sales_formula_revision.sql`
+- Migration terbaru: `supabase/migrations/20261014090000_esb_cogs.sql`
 - Dev server lokal jalan di **port 3002** (bukan 3000) — port 3000/3001 udah dipakai project lain di mesin ini (`ecommerce/storefront`, `ecommerce/admin`). Kalau env `.env.local` diubah, dev server WAJIB di-restart manual (Next.js cuma baca `.env.local` sekali pas start, gak ke-HMR).
 - Edge Function: `supabase/functions/sync-esb/` (index.ts = handler, esb-client.ts = fetch ESB, transform.ts = mapping, upsert.ts = idempotent write)
+- Edge Function HPP/COGS: `supabase/functions/sync-esb-hpp/`, `supabase/functions/sync-esb-cogs/`, shared code di `supabase/functions/_shared/`
 - Query façade app: `src/lib/queries/`
 - Setup/deploy lengkap: `README.md`

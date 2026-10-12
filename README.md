@@ -1,6 +1,6 @@
 # ESB Analytics — Dashboard Sales, Membership & Marketing
 
-Internal executive dashboard for F&B sales/membership/marketing performance. Next.js (App Router) on Vercel, Supabase Postgres + Edge Functions + Cron as the backend, data synced daily from the ESB OMS API. Built from `design_handoff_sales_dashboard/` (PRD + design reference).
+Internal executive dashboard for F&B sales/membership/marketing performance. Next.js (App Router) on Vercel, Supabase Postgres + Edge Functions + Cron as the backend, data synced daily from the ESB OMS API (sales, master menu) and ESB Core API (BOM / HPP, actual COGS reports). Built from `design_handoff_sales_dashboard/` (PRD + design reference).
 
 ## Stack
 
@@ -15,6 +15,8 @@ Project is linked to a live Supabase project (`giyspsmyitlygujelqjd`) with all m
 1. ~~**ESB request contract.**~~ Resolved — `supabase/functions/sync-esb/esb-client.ts` now uses the confirmed real endpoint (`{ESB_API_BASE_URL}/corev1/sales/sales-information`), Bearer auth, and the real `salesDateFrom`/`salesDateTo`/`page`/`sortBy`/`sortOrder` params. `ESB_API_BASE_URL`/`ESB_API_KEY` secrets are set; deploy with `npx supabase functions deploy sync-esb` to pick them up.
 2. **Membership profile endpoint.** No sample was available for ESB's membership endpoint, so `supabase/functions/sync-esb/membership.ts` is a feature-flagged stub (`ESB_MEMBERSHIP_ENDPOINT` unset = no-op). Membership *analytics* (visits, spending, retention, new members, tier) already work off `memberCode`/`memberName` on sales records with a spending-bracket tier fallback — only `raw_members.tier`/`join_date` accuracy improves once this is wired.
 3. ~~**Cron job auth.**~~ Resolved — reworked and deployed 27 Aug 2026 after three multi-day sync outages (see `supabase/migrations/20260827090000_cron_hardening.sql`). The job no longer sends a JWT; it sends an `x-sync-secret` header checked inside the Edge Function, and `verify_jwt` is off for `sync-esb`. Requires the `SYNC_SHARED_SECRET` function secret and the `sync_esb_shared_secret` Vault secret to hold the **same** value — see §3 below. Diagnose with `select * from sync_dispatch order by id desc`, not `cron.job_run_details` (which only proves the SQL dispatched, never that the HTTP call succeeded).
+
+4. **HPP / COGS (Oct 2026).** HPP per menu and ingredient usage are live (`sync-esb-hpp`, `sync-esb-cogs`, see §3). Open: the BOM HPP formula's `convertionQty`/`yieldPercent` handling is only validated where they are 1/0; food cost % and margin stay hidden until the revenue basis of `v_sales_product_daily` is confirmed; ESB's monthly COGS closing day is unconfirmed (re-fetch window defaults to day 20). Details and decisions: `PROGRESS.md` §4.
 
 ## Setup
 
@@ -136,11 +138,15 @@ Push to a Git remote and import into Vercel (zero special config — see `.env.l
 ## Repo layout
 
 - `src/app/` — routes: `/login`, `/dashboard` (single shell; tabs are a `?tab=` search param per the design spec, not separate routes).
-- `src/components/tabs/` — Overview / Sales / Membership / Marketing tab bodies.
+- `src/components/tabs/` — Overview / Sales / Membership / Marketing tab bodies (Sales includes `menu-hpp-panel.tsx` and `ingredient-usage-panel.tsx`).
 - `src/lib/queries/` — typed Supabase query façade (one function per view/RPC).
 - `src/lib/recommendations.ts` — FR-30–32 rule-based promo/menu recommendations.
 - `supabase/migrations/` — raw tables, RLS, aggregation views, `fn_menu_performance`/`fn_promo_performance`/`fn_membership_summary`/`fn_top_members` (FR-21–29), cron schedule.
-- `supabase/functions/sync-esb/` — daily ETL Edge Function.
+- `supabase/functions/sync-esb/` — daily sales ETL Edge Function.
+- `supabase/functions/sync-esb-hpp/` — daily master menu + BOM snapshot (HPP per menu).
+- `supabase/functions/sync-esb-cogs/` — ESB actual COGS reports for closed months.
+- `supabase/functions/_shared/` — auth guard, CORS, ESB Core client (login + retries), HTTP helper.
+- `supabase/diagnostics/` — SQL checks for the sync jobs (`sync-esb-health.sql`, `menu-hpp-health.sql`).
 - `supabase/seed.sql` — synthetic fixture data shaped like the real ESB payload, for local/reference use.
 
 ## Design deviations from the mock (and why)
