@@ -89,7 +89,7 @@ claude.ai's Custom Connectors only support a real HTTPS URL — never `localhost
 | Variable | Value |
 |---|---|
 | `MCP_DATABASE_URL` | The exact same `mcp_analytics` connection string from step 3 above. |
-| `MCP_AUTH_TOKEN` | A new, long, random secret you generate yourself (e.g. `openssl rand -hex 32`) — this is **not** the database password, it's what protects the public endpoint itself. |
+| `MCP_AUTH_TOKEN` | A new, long, random secret you generate yourself (e.g. `openssl rand -hex 32`) — this is **not** the database password, it's what protects the public endpoint itself. Accepts several comma-separated keys (e.g. `<claude-key>,<chatgpt-key>`) so each client gets its own key and can be revoked on its own. |
 
 Redeploy after adding these (or trigger one via a new commit).
 
@@ -102,6 +102,22 @@ https://<your-vercel-domain>/api/mcp?key=<the MCP_AUTH_TOKEN you set above>
 ```
 
 Treat that full URL as a secret — anyone who has it can call every tool this server exposes. Don't paste it into a shared doc, chat, or screenshot.
+
+## 9. Connect ChatGPT (Developer Mode connectors)
+
+ChatGPT talks to the exact same `/api/mcp` endpoint — no separate server. Its custom connectors support remote Streamable HTTP MCP servers with either OAuth or no authentication; this server uses "no authentication" plus the `?key=` secret in the URL, same as claude.ai.
+
+Requirements: a ChatGPT plan with Developer Mode (Plus, Pro, Business, Enterprise or Edu, on the web). On Business/Enterprise/Edu a workspace admin may have to allow custom connectors first. OpenAI renames these menus fairly often — if the path below doesn't match, search ChatGPT's help center for "developer mode".
+
+1. Generate a separate key for ChatGPT (`openssl rand -hex 32`) and append it to `MCP_AUTH_TOKEN` in Vercel, comma-separated after the existing claude.ai key. Redeploy.
+2. In ChatGPT: Settings → Apps (formerly Connectors) → Advanced settings → turn on **Developer mode**.
+3. Create a new app/connector:
+   - **Name:** ESB Analytics
+   - **MCP server URL:** `https://<your-vercel-domain>/api/mcp?key=<the ChatGPT key>`
+   - **Authentication:** No authentication
+4. In a new chat, enable the connector from the tools menu (Developer mode), then ask e.g. "Berapa total revenue minggu lalu per outlet?".
+
+Every tool is annotated `readOnlyHint: true`, so ChatGPT shouldn't ask for confirmation before each call. To cut ChatGPT off without affecting claude.ai, remove just its key from `MCP_AUTH_TOKEN` and redeploy.
 
 ## Known pre-existing issue (unrelated, not fixed by this work)
 

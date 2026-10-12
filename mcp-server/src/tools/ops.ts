@@ -5,11 +5,13 @@ import { dateRange } from "../lib/dates.js";
 import { optionalOutlet } from "../lib/validation.js";
 import { toResult } from "../lib/output.js";
 import { withToolErrorHandling } from "../lib/errors.js";
+import { READ_ONLY } from "../lib/annotations.js";
 
 export function registerOpsTools(server: McpServer, db: Db) {
   server.registerTool(
     "ops_summary",
     {
+      annotations: READ_ONLY,
       description:
         "Operational metrics for a date range: transaction totals/cancel-void counts/dwell time/discount sums, plus channel mix and payment method breakdown. Runs 3 queries via Promise.all (channel mix and payment method are separate source views from the totals) -- not one query.",
       inputSchema: dateRange.and(z.object({ outlet: optionalOutlet })),

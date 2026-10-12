@@ -4,11 +4,13 @@ import type { Db } from "../db.js";
 import { limitParam } from "../lib/validation.js";
 import { toResult } from "../lib/output.js";
 import { withToolErrorHandling } from "../lib/errors.js";
+import { READ_ONLY } from "../lib/annotations.js";
 
 export function registerMetaTools(server: McpServer, db: Db) {
   server.registerTool(
     "list_outlets",
     {
+      annotations: READ_ONLY,
       description:
         "Lists outlets (branch_code + branch_name). Call this first to resolve a human outlet name into the branch_code every other tool's `outlet` param expects.",
       inputSchema: z.object({
@@ -31,6 +33,7 @@ export function registerMetaTools(server: McpServer, db: Db) {
   server.registerTool(
     "list_categories",
     {
+      annotations: READ_ONLY,
       description:
         "Lists product categories with their category_details nested underneath. Call this first to resolve human category names into the category_id/category_detail_id that top_products/menu_performance expect.",
       inputSchema: z.object({

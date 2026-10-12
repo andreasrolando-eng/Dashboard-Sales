@@ -5,11 +5,13 @@ import { dateRange } from "../lib/dates.js";
 import { optionalOutlet, optionalCategory, optionalCategoryDetail, limitParam } from "../lib/validation.js";
 import { toResult } from "../lib/output.js";
 import { withToolErrorHandling } from "../lib/errors.js";
+import { READ_ONLY } from "../lib/annotations.js";
 
 export function registerSalesTools(server: McpServer, db: Db) {
   server.registerTool(
     "sales_summary",
     {
+      annotations: READ_ONLY,
       description: "Total revenue/nett sales/transactions/member revenue for a date range, optionally scoped to one outlet. Mirrors the dashboard's sumSalesDaily().",
       inputSchema: dateRange.and(z.object({ outlet: optionalOutlet })),
     },
@@ -31,6 +33,7 @@ export function registerSalesTools(server: McpServer, db: Db) {
   server.registerTool(
     "revenue_by_outlet",
     {
+      annotations: READ_ONLY,
       description: "Cross-outlet revenue breakdown for a date range, ranked highest first. Always covers every outlet (there's no `outlet` filter -- that's the point of this tool). Mirrors groupRevenueByOutlet().",
       inputSchema: dateRange.and(z.object({ limit: limitParam(20, 100) })),
     },
@@ -52,6 +55,7 @@ export function registerSalesTools(server: McpServer, db: Db) {
   server.registerTool(
     "top_products",
     {
+      annotations: READ_ONLY,
       description: "Aggregated per-product qty/revenue for a date range, sorted and limited. Mirrors the dashboard's product aggregation (Top Seller / Slow Moving).",
       inputSchema: dateRange.and(
         z.object({
@@ -85,6 +89,7 @@ export function registerSalesTools(server: McpServer, db: Db) {
   server.registerTool(
     "menu_performance",
     {
+      annotations: READ_ONLY,
       description: "Menu performance vs. the prior equal-length period, with a takeout-candidate flag below `threshold` units sold. Direct passthrough of the dashboard's fn_menu_performance RPC.",
       inputSchema: dateRange.and(
         z.object({

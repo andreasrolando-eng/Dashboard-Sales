@@ -5,11 +5,13 @@ import { dateRange } from "../lib/dates.js";
 import { optionalOutlet, limitParam } from "../lib/validation.js";
 import { toResult } from "../lib/output.js";
 import { withToolErrorHandling } from "../lib/errors.js";
+import { READ_ONLY } from "../lib/annotations.js";
 
 export function registerMembershipTools(server: McpServer, db: Db) {
   server.registerTool(
     "membership_summary",
     {
+      annotations: READ_ONLY,
       description: "Total/active members, churn/retention rates, and visit frequency for a date range. Calls the mcp_private.mcp_membership_summary DB wrapper (see mcp-server README) rather than the dashboard's RPC directly.",
       inputSchema: dateRange.and(z.object({ outlet: optionalOutlet })),
     },
@@ -24,6 +26,7 @@ export function registerMembershipTools(server: McpServer, db: Db) {
   server.registerTool(
     "top_members",
     {
+      annotations: READ_ONLY,
       description:
         "Top members by spending for a date range. Calls the mcp_private.mcp_top_members DB wrapper, which intentionally omits member_name (data minimization) -- results identify members only by member_code, not by name.",
       inputSchema: dateRange.and(z.object({ outlet: optionalOutlet, limit: limitParam(8, 100) })),

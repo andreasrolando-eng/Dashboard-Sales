@@ -5,11 +5,13 @@ import { dateRange } from "../lib/dates.js";
 import { optionalOutlet } from "../lib/validation.js";
 import { toResult } from "../lib/output.js";
 import { withToolErrorHandling } from "../lib/errors.js";
+import { READ_ONLY } from "../lib/annotations.js";
 
 export function registerMarketingTools(server: McpServer, db: Db) {
   server.registerTool(
     "promo_performance",
     {
+      annotations: READ_ONLY,
       description: "Promo redemptions, lift vs. baseline, ROI, and effectiveness status for a date range. Direct passthrough of the dashboard's fn_promo_performance RPC.",
       inputSchema: dateRange.and(z.object({ outlet: optionalOutlet })),
     },

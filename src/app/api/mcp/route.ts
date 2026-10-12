@@ -10,9 +10,10 @@ import { createDb } from "../../../../mcp-server/dist/db.js";
 
 /**
  * Public Streamable HTTP entrypoint for the read-only analytics MCP server,
- * so claude.ai's Custom Connectors (and other remote MCP clients) can reach
- * it -- claude.ai only supports remote HTTPS MCP servers, never a local
- * stdio process (that's mcp-server/src/transports/stdio.ts, for Claude
+ * so claude.ai's Custom Connectors, ChatGPT's Developer Mode connectors
+ * (and other remote MCP clients) can reach it -- both only support remote
+ * HTTPS MCP servers, never a local stdio process
+ * (that's mcp-server/src/transports/stdio.ts, for Claude
  * Code/Desktop instead). Intentionally imports the sibling mcp-server/
  * package's source directly rather than duplicating the tool/server code,
  * so both entrypoints share one implementation.
@@ -25,7 +26,12 @@ import { createDb } from "../../../../mcp-server/dist/db.js";
  */
 
 const databaseUrl = process.env.MCP_DATABASE_URL;
-const authToken = process.env.MCP_AUTH_TOKEN;
+// Comma-separated so each client (claude.ai, ChatGPT, ...) can get its own
+// key and be revoked independently by removing just that entry.
+const authTokens = (process.env.MCP_AUTH_TOKEN ?? "")
+  .split(",")
+  .map((t) => t.trim())
+  .filter(Boolean);
 
 // Module-level singleton -- reused across warm invocations of this
 // serverless function, same one-pool-per-process pattern as the stdio/local
@@ -43,9 +49,9 @@ function getHandler() {
 }
 
 function isAuthorized(request: Request): boolean {
-  if (!authToken) return false; // fail closed if the token itself isn't configured
+  if (authTokens.length === 0) return false; // fail closed if no token is configured
   const key = new URL(request.url).searchParams.get("key");
-  return key === authToken;
+  return key !== null && authTokens.includes(key);
 }
 
 async function handle(request: Request): Promise<Response> {
