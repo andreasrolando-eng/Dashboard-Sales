@@ -66,6 +66,22 @@ update allowed_users set is_admin = true where email = 'nama@email.com';
 for how it's enforced (an app-level gate, not a cookie `Max-Age` Supabase's own
 SDK controls) before assuming it's a bug.
 
+## HPP numbers missing or stale
+
+1. `select * from sync_log where job_name = 'sync-esb-hpp' order by id desc limit 5;`
+   - `partial_success`: some BOMs failed; `error_message` names one. Those
+     menus keep their previous snapshot, so a one-off partial is harmless.
+   - `failed` with "not configured": ESB Core secrets missing (README §3).
+   - stuck `running` > 15 min: the function was killed (time limit). The
+     next run is allowed again after 15 min; if it keeps happening, lower
+     `ESB_HPP_TIME_BUDGET_MS` or raise `ESB_HPP_BOM_CONCURRENCY`.
+2. Cron side: `select * from sync_dispatch where kind = 'hpp' order by id desc limit 5;`
+3. More checks: `supabase/diagnostics/menu-hpp-health.sql`.
+
+A menu showing **Belum ada snapshot** for old dates is expected: sales are
+only costed with a BOM snapshot taken on or before the sale date, and
+snapshots start the day the HPP sync first ran.
+
 ## Deploy checklist (Edge Function changes)
 
 Deploy the function *before* setting/rotating any secret it depends on, then
@@ -78,5 +94,6 @@ corrected (this exact mistake caused a real multi-day outage -- see
 - Sync diagnostics: `supabase/diagnostics/sync-esb-health.sql`
 - Sync alerting/reconcile: `supabase/migrations/20260915090000_sync_alerting.sql`
 - Materialized view refresh: `supabase/migrations/20260915090100_materialized_sales_daily.sql`
-- Edge Function: `supabase/functions/sync-esb/`
+- Edge Functions: `supabase/functions/sync-esb/`, `supabase/functions/sync-esb-hpp/` (shared auth guard in `supabase/functions/_shared/auth.ts`)
+- HPP schema, formula and RPCs: `supabase/migrations/20261013090000_menu_hpp.sql`
 - Full incident history and reasoning: `PROGRESS.md`

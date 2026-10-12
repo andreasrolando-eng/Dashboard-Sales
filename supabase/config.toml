@@ -390,9 +390,15 @@ deno_version = 2
 # UNAUTHORIZED_INVALID_JWT_FORMAT) before the function's own code ever ran --
 # twice, costing days of un-synced data. Auth is enforced inside the function
 # instead (shared secret for cron, verified session JWT for the dashboard
-# button); see the guard in supabase/functions/sync-esb/index.ts. Deploy the
+# button); see the guard in supabase/functions/_shared/auth.ts. Deploy the
 # function BEFORE applying the cron migration that stops sending Authorization.
 [functions.sync-esb]
+enabled = true
+verify_jwt = false
+
+# Same reason as sync-esb (cron sends the shared secret, not a JWT); the
+# function checks auth itself and additionally requires is_admin for users.
+[functions.sync-esb-hpp]
 enabled = true
 verify_jwt = false
 

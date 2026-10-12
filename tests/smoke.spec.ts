@@ -72,7 +72,8 @@ test("PDF export downloads a file from Menu Underperforming", async ({ page }) =
 
   const [download] = await Promise.all([
     page.waitForEvent("download", { timeout: 20_000 }),
-    page.getByRole("button", { name: "PDF" }).first().click(),
+    // exact: the header's "Export Laporan Lengkap (PDF)" button also contains "PDF".
+    page.getByRole("button", { name: "PDF", exact: true }).first().click(),
   ]);
 
   expect(download.suggestedFilename()).toMatch(/^menu-underperforming_.*\.pdf$/);

@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
 import { isMockMode } from "@/lib/mock/is-mock";
 import {
+  mockIngredientUsage,
+  mockMenuBomDetail,
+  mockMenuHpp,
   mockMenuPerformance,
   mockSalesBills,
   mockSalesDailyOutlet,
@@ -272,4 +275,69 @@ export async function getMenuPerformance(
   });
   if (error) throw error;
   return data;
+}
+
+/**
+ * HPP & historical COGS per menu (fn_menu_hpp). Costing is strict as-of: each
+ * day's sales use the BOM snapshot in force that day, never a later one. No
+ * food cost % / margin yet -- the revenue basis isn't validated.
+ */
+export async function getMenuHpp(dateStart: string, dateEnd: string, outlet: string, category: string, categoryDetail: string) {
+  const branch = resolveOutlet(outlet);
+  const catId = resolveCategory(category);
+  const catDetailId = resolveCategoryDetail(categoryDetail);
+
+  if (isMockMode()) return mockMenuHpp(dateStart, dateEnd, branch, catId, catDetailId);
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("fn_menu_hpp", {
+    p_date_start: dateStart,
+    p_date_end: dateEnd,
+    p_outlet: branch,
+    p_category_id: catId,
+    p_category_detail_id: catDetailId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** BOM lines in force for one menu as of a date (the HPP panel's expandable row). */
+export async function getMenuBomDetail(menuId: string, asOf: string) {
+  if (isMockMode()) return mockMenuBomDetail(menuId, asOf);
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("fn_menu_bom_detail", { p_menu_id: menuId, p_as_of: asOf });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Theoretical ingredient usage (qty sold x BOM qty) plus how much of the
+ * period's menu sales it could not account for (no BOM / no snapshot yet).
+ */
+export async function getIngredientUsage(dateStart: string, dateEnd: string, outlet: string, category: string, categoryDetail: string) {
+  const branch = resolveOutlet(outlet);
+  const catId = resolveCategory(category);
+  const catDetailId = resolveCategoryDetail(categoryDetail);
+
+  if (isMockMode()) return mockIngredientUsage(dateStart, dateEnd, branch, catId, catDetailId);
+
+  const supabase = createClient();
+  const args = {
+    p_date_start: dateStart,
+    p_date_end: dateEnd,
+    p_outlet: branch,
+    p_category_id: catId,
+    p_category_detail_id: catDetailId,
+  };
+  const [usage, coverage] = await Promise.all([
+    supabase.rpc("fn_ingredient_usage", args),
+    supabase.rpc("fn_ingredient_usage_coverage", args),
+  ]);
+  if (usage.error) throw usage.error;
+  if (coverage.error) throw coverage.error;
+  return {
+    rows: usage.data,
+    coverage: coverage.data[0] ?? { menu_qty_total: 0, menu_qty_counted: 0, menu_qty_not_counted: 0 },
+  };
 }
