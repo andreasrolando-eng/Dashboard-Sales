@@ -55,12 +55,12 @@ export function FullReportExportButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
       <button
         type="button"
         onClick={handleExport}
         disabled={busy}
-        className="px-3.5 py-1.5 rounded-lg border border-border-form bg-surface text-xs font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg border border-border-form bg-surface text-xs font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {label()}
       </button>

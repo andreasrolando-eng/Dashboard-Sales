@@ -98,7 +98,7 @@ export function OverviewTab() {
         {insight}
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Total Revenue"
           value={fmtRupiah(current.revenue)}
@@ -136,7 +136,7 @@ export function OverviewTab() {
         />
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5">
         <ChartCard title="Tren Revenue Harian" fullWidth>
           <SimpleBarChart data={trendBars} height={220} dateAxis valueFormatter={fmtRupiah} labelFormatter={fmtDateFullID} />
         </ChartCard>

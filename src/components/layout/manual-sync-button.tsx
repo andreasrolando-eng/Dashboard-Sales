@@ -55,40 +55,40 @@ export function ManualSyncButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
         <input
           type="date"
           value={dateFrom}
           max={dateTo}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-border-form text-xs font-sans"
+          className="flex-1 min-w-0 sm:flex-none px-2 sm:px-2.5 py-1.5 rounded-lg border border-border-form text-xs font-sans"
         />
-        <span className="text-xs text-text-tertiary">–</span>
+        <span className="hidden sm:inline text-xs text-text-tertiary">–</span>
         <input
           type="date"
           value={dateTo}
           min={dateFrom}
           max={today}
           onChange={(e) => setDateTo(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-border-form text-xs font-sans"
+          className="flex-1 min-w-0 sm:flex-none px-2 sm:px-2.5 py-1.5 rounded-lg border border-border-form text-xs font-sans"
         />
         <button
           type="button"
           onClick={handleSync}
           disabled={status === "syncing"}
-          className="px-3.5 py-1.5 rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer disabled:opacity-60 whitespace-nowrap"
+          className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer disabled:opacity-60 whitespace-nowrap"
         >
           {status === "syncing" ? "Menyinkronkan..." : "Sync Manual"}
         </button>
       </div>
       {message && (
-        <div className="text-xs text-right max-w-[280px]" style={{ color: status === "error" ? "#dc2626" : "#16a34a" }}>
+        <div className="text-xs sm:text-right sm:max-w-[280px]" style={{ color: status === "error" ? "#dc2626" : "#16a34a" }}>
           {message}
         </div>
       )}
       {failedDays.length > 0 && (
-        <div className="flex flex-col items-end gap-1 max-w-[320px]">
+        <div className="flex flex-col items-start gap-1 sm:items-end sm:max-w-[320px]">
           {failedDays.map((d) => (
             <button
               key={d.date}

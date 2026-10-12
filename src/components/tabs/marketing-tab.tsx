@@ -84,7 +84,7 @@ export function MarketingTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-4 lg:gap-5 mb-5">
         <KpiCard label="Total Redemption" value={fmtNum(totalRedemption)} delta="seluruh promo aktif" deltaColor="#2563eb" />
         <KpiCard
           label="Promo Terbaik"
@@ -147,7 +147,7 @@ export function MarketingTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5 mb-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5 mb-4">
         <ChartCard title="Promo Paling Banyak Upsell">
           <div>
             {topUpsellPromos.map((p) => (
@@ -191,7 +191,7 @@ export function MarketingTab() {
             <span className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-accent-soft-strong text-accent whitespace-nowrap">
               {r.type}
             </span>
-            <div className="text-[13px] text-[oklch(30%_0.01_260)]">{r.text}</div>
+            <div className="min-w-0 break-words text-[13px] text-[oklch(30%_0.01_260)]">{r.text}</div>
           </div>
         ))}
       </div>

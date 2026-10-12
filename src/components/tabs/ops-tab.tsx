@@ -95,7 +95,7 @@ export function OpsTab() {
 
   return (
     <>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4 lg:gap-5 mb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-4 lg:gap-5 mb-6">
         <KpiCard
           label="Tingkat Cancel/Void"
           value={`${cancelVoidRate.toFixed(1)}%`}
@@ -111,7 +111,7 @@ export function OpsTab() {
         <KpiCard label="Revenue per Cover" value={fmtRupiah(revenuePerCover)} />
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 lg:gap-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-4 lg:gap-5">
         <ChartCard title="Channel Mix">
           <OutletBarList
             items={channelBars.map((c) => ({

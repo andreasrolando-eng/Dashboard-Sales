@@ -276,7 +276,7 @@ export function FilterBar() {
 
   const today = todayLocalISO();
   const selectClass =
-    "px-3.5 py-2.5 rounded-[10px] border border-border-form bg-surface text-[13px] font-medium text-text";
+    "w-full px-3.5 py-2.5 rounded-[10px] border border-border-form bg-surface text-[13px] font-medium text-text";
 
   function updateDraftStart(value: string | null) {
     draftStartRef.current = value;
@@ -350,7 +350,7 @@ export function FilterBar() {
   const previewEnd = draftStart != null && hoverDate != null ? (draftStart <= hoverDate ? hoverDate : draftStart) : null;
 
   return (
-    <div className="flex flex-wrap gap-2.5 mb-6">
+    <div className="grid grid-cols-1 gap-2.5 mb-6 sm:flex sm:flex-wrap">
       <Dropdown
         value={outlet}
         onChange={setOutlet}
@@ -365,7 +365,7 @@ export function FilterBar() {
         <div
           onClick={togglePicker}
           className={cn(
-            "flex items-center gap-2.5 px-3.5 py-2.5 bg-surface border rounded-[10px] text-[13px] font-medium cursor-pointer select-none",
+            "flex items-center justify-between sm:justify-start gap-2.5 px-3.5 py-2.5 bg-surface border rounded-[10px] text-[13px] font-medium cursor-pointer select-none",
             pickerOpen ? "border-accent" : "border-border-form"
           )}
         >
@@ -374,7 +374,7 @@ export function FilterBar() {
         </div>
 
         {pickerOpen && (
-          <div className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 bg-surface border border-border-form rounded-xl p-4 shadow-[var(--shadow-popover)] z-20 w-[min(92vw,644px)]">
+          <div className="absolute top-[calc(100%+6px)] left-0 right-0 sm:right-auto bg-surface border border-border-form rounded-xl p-4 shadow-[var(--shadow-popover)] z-20 sm:w-[min(92vw,644px)]">
             <div className="flex flex-col sm:flex-row gap-5" onMouseLeave={() => setHoverDate(null)}>
               <MonthPanel
                 ym={leftMonth}
