@@ -21,6 +21,24 @@ export interface SyncResult {
 }
 
 /**
+ * FunctionsHttpError exposes the raw Response as `.context` -- the sync
+ * functions always respond with a JSON body (even on failure) that has a more
+ * specific `error` message than the generic HTTP error text.
+ */
+async function functionErrorMessage(error: Error): Promise<string> {
+  const context = (error as { context?: Response }).context;
+  if (context) {
+    try {
+      const body = await context.json();
+      if (body?.error) return body.error;
+    } catch {
+      // not JSON / already consumed -- fall back to the generic message
+    }
+  }
+  return error.message;
+}
+
+/**
  * Manual trigger for the sync-esb Edge Function, called from the dashboard's
  * "Sync Manual" button. Idempotent by construction, not by anything this
  * function does: the Edge Function's upsert step (supabase/functions/sync-esb/upsert.ts)
@@ -38,22 +56,31 @@ export async function triggerManualSync(dateFrom: string, dateTo: string): Promi
     body: { dateFrom, dateTo },
   });
 
-  if (error) {
-    // FunctionsHttpError exposes the raw Response as `.context` -- the
-    // function always responds with a JSON body (even on failure) that has
-    // a more specific `error` message than the generic HTTP error text.
-    const context = (error as { context?: Response }).context;
-    let message = error.message;
-    if (context) {
-      try {
-        const body = await context.json();
-        if (body?.error) message = body.error;
-      } catch {
-        // not JSON / already consumed -- fall back to the generic message
-      }
-    }
-    throw new Error(message);
-  }
+  if (error) throw new Error(await functionErrorMessage(error));
 
   return data as SyncResult;
+}
+
+export interface HppSyncResult {
+  ok: boolean;
+  status: "success" | "partial_success" | "failed";
+  snapshotDate: string;
+  menus?: number;
+  boms?: { total: number; ok: number; failed: number };
+  failedBoms?: { bomId: number; error: string }[];
+  error?: string;
+}
+
+/**
+ * Manual trigger for the sync-esb-hpp Edge Function (admins only -- the
+ * function itself enforces that). `invoke` resolves only once the function
+ * has finished and published, so callers can refetch right after. A partial
+ * success comes back as HTTP 207, which invoke treats as success, so check
+ * `status` on the result.
+ */
+export async function triggerHppSync(): Promise<HppSyncResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.functions.invoke("sync-esb-hpp", { body: { trigger: "manual" } });
+  if (error) throw new Error(await functionErrorMessage(error));
+  return data as HppSyncResult;
 }

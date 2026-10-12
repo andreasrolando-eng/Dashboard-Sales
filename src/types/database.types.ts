@@ -201,6 +201,79 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      fn_menu_hpp: {
+        Args: {
+          p_date_start: string;
+          p_date_end: string;
+          p_outlet?: string | null;
+          p_category_id?: string | null;
+          p_category_detail_id?: string | null;
+        };
+        Returns: {
+          menu_id: string;
+          menu_name: string | null;
+          category: string | null;
+          category_detail: string | null;
+          qty: number;
+          revenue: number;
+          avg_selling_price: number | null;
+          latest_hpp: number | null;
+          latest_snapshot_date: string | null;
+          latest_cost_status: "ok" | "incomplete_cost" | "no_bom" | "package" | null;
+          cogs: number;
+          costed_qty: number;
+          uncosted_qty: number;
+          cost_coverage_status: "complete" | "incomplete_cost" | "no_bom" | "package" | "no_historical_cost" | "unmapped";
+        }[];
+      };
+      fn_menu_bom_detail: {
+        Args: { p_menu_id: string; p_as_of: string };
+        Returns: {
+          snapshot_date: string;
+          bom_id: number;
+          line_id: number;
+          product_id: number | null;
+          product_code: string | null;
+          product_name: string | null;
+          qty: number | null;
+          uom_name: string | null;
+          convertion_qty: number | null;
+          yield_percent: number | null;
+          last_hpp: number | null;
+          line_cost: number | null;
+          is_valid: boolean;
+          substitutions: { productNameDetail?: string | null; productNameSubtitution?: string | null; uomNameSubtitution?: string | null }[];
+        }[];
+      };
+      fn_ingredient_usage: {
+        Args: {
+          p_date_start: string;
+          p_date_end: string;
+          p_outlet?: string | null;
+          p_category_id?: string | null;
+          p_category_detail_id?: string | null;
+        };
+        Returns: {
+          product_id: number | null;
+          product_code: string | null;
+          product_name: string | null;
+          uom_name: string | null;
+          total_usage_qty: number;
+          menu_count: number;
+          est_cost: number;
+          uncosted_usage_qty: number;
+        }[];
+      };
+      fn_ingredient_usage_coverage: {
+        Args: {
+          p_date_start: string;
+          p_date_end: string;
+          p_outlet?: string | null;
+          p_category_id?: string | null;
+          p_category_detail_id?: string | null;
+        };
+        Returns: { menu_qty_total: number; menu_qty_counted: number; menu_qty_not_counted: number }[];
+      };
       fn_admin_list_users: {
         Args: Record<PropertyKey, never>;
         Returns: { email: string; is_admin: boolean; added_at: string }[];

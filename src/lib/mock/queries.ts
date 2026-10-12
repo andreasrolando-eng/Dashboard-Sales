@@ -1,6 +1,6 @@
 import type { Database } from "@/types/database.types";
 import type { SalesBill } from "@/lib/queries/sales";
-import { CHANNELS, dateRange, MEMBERS, OUTLETS, PAYMENT_METHODS, PEAK_HOUR_WEIGHT, PEAK_HOURS, PRODUCTS, PROMOTIONS, seededRandom } from "./fixtures";
+import { CHANNELS, dateRange, MEMBERS, MOCK_BOMS, OUTLETS, PAYMENT_METHODS, PEAK_HOUR_WEIGHT, PEAK_HOURS, PRODUCTS, PROMOTIONS, seededRandom } from "./fixtures";
 
 type SalesDailyRow = Database["public"]["Views"]["v_sales_daily_outlet"]["Row"];
 type SalesOpsDailyRow = Database["public"]["Views"]["v_sales_ops_daily"]["Row"];
@@ -12,6 +12,9 @@ type MenuPerfRow = Database["public"]["Functions"]["fn_menu_performance"]["Retur
 type PromoPerfRow = Database["public"]["Functions"]["fn_promo_performance"]["Returns"][number];
 type MembershipSummaryRow = Database["public"]["Functions"]["fn_membership_summary"]["Returns"][number];
 type TopMemberRow = Database["public"]["Functions"]["fn_top_members"]["Returns"][number];
+type MenuHppRow = Database["public"]["Functions"]["fn_menu_hpp"]["Returns"][number];
+type MenuBomDetailRow = Database["public"]["Functions"]["fn_menu_bom_detail"]["Returns"][number];
+type IngredientUsageRow = Database["public"]["Functions"]["fn_ingredient_usage"]["Returns"][number];
 
 const OUTLET_WEIGHT: Record<string, number> = { SNY: 1.4, KMG: 1.15, PIK: 1.55, BDG: 0.85, SBY: 0.95 };
 
@@ -469,4 +472,147 @@ export function mockCategoryDetailOptions() {
 
 export function mockLastSync() {
   return { job_name: "sync-esb", finished_at: new Date().toISOString(), status: "success", rows_synced: 1240 };
+}
+
+// ---------------------------------------------------------------------------
+// HPP / ingredient usage. Mirrors fn_menu_hpp / fn_menu_bom_detail /
+// fn_ingredient_usage with a single BOM snapshot on MOCK_HPP_SNAPSHOT_DATE:
+// sales before it are uncosted (no_historical_cost), like the real strict
+// as-of lookup.
+// ---------------------------------------------------------------------------
+const MOCK_HPP_SNAPSHOT_DATE = "2026-01-01";
+
+function mockLineCost(l: { qty: number; last_hpp: number | null }): number | null {
+  return l.qty > 0 && l.last_hpp != null && l.last_hpp > 0 ? l.qty * l.last_hpp : null;
+}
+
+function mockBomCost(menuId: string): { hpp: number | null; status: "ok" | "incomplete_cost" | "no_bom" } {
+  const bom = MOCK_BOMS[menuId];
+  if (!bom) return { hpp: null, status: "no_bom" };
+  const costs = bom.lines.map(mockLineCost);
+  const hpp = costs.reduce<number>((a, c) => a + (c ?? 0), 0);
+  return { hpp, status: costs.every((c) => c !== null) ? "ok" : "incomplete_cost" };
+}
+
+export function mockMenuHpp(
+  dateStart: string,
+  dateEnd: string,
+  outlet: string | null,
+  categoryId: string | null,
+  categoryDetailId: string | null
+): MenuHppRow[] {
+  const agg = new Map<string, MenuHppRow>();
+  for (const r of mockSalesProductDaily(dateStart, dateEnd, outlet, categoryId, categoryDetailId)) {
+    const qty = r.qty ?? 0;
+    const revenue = r.revenue ?? 0;
+    const { hpp, status } = mockBomCost(r.menu_id);
+    const hasSnapshot = r.sales_date >= MOCK_HPP_SNAPSHOT_DATE;
+    const costed = hasSnapshot && status === "ok";
+    const e =
+      agg.get(r.menu_id) ??
+      ({
+        menu_id: r.menu_id,
+        menu_name: r.menu_name,
+        category: r.category,
+        category_detail: r.category_detail,
+        qty: 0,
+        revenue: 0,
+        avg_selling_price: null,
+        latest_hpp: dateEnd >= MOCK_HPP_SNAPSHOT_DATE && status !== "no_bom" ? hpp : null,
+        latest_snapshot_date: dateEnd >= MOCK_HPP_SNAPSHOT_DATE ? MOCK_HPP_SNAPSHOT_DATE : null,
+        latest_cost_status: dateEnd >= MOCK_HPP_SNAPSHOT_DATE ? status : null,
+        cogs: 0,
+        costed_qty: 0,
+        uncosted_qty: 0,
+        cost_coverage_status: "complete",
+      } satisfies MenuHppRow);
+    e.qty += qty;
+    e.revenue += revenue;
+    if (costed) {
+      e.costed_qty += qty;
+      e.cogs += qty * (hpp ?? 0);
+    } else {
+      e.uncosted_qty += qty;
+      e.cost_coverage_status = !hasSnapshot ? "no_historical_cost" : status === "ok" ? "complete" : status;
+    }
+    agg.set(r.menu_id, e);
+  }
+  return [...agg.values()]
+    .map((e) => ({ ...e, avg_selling_price: e.qty > 0 ? e.revenue / e.qty : null }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
+export function mockMenuBomDetail(menuId: string, asOf: string): MenuBomDetailRow[] {
+  const bom = MOCK_BOMS[menuId];
+  if (!bom || asOf < MOCK_HPP_SNAPSHOT_DATE) return [];
+  return bom.lines.map((l, i) => {
+    const cost = mockLineCost(l);
+    return {
+      snapshot_date: MOCK_HPP_SNAPSHOT_DATE,
+      bom_id: bom.bom_id,
+      line_id: i + 1,
+      product_id: l.product_id,
+      product_code: l.product_code,
+      product_name: l.product_name,
+      qty: l.qty,
+      uom_name: l.uom_name,
+      convertion_qty: 1,
+      yield_percent: 100,
+      last_hpp: l.last_hpp,
+      line_cost: cost,
+      is_valid: cost !== null,
+      substitutions: l.substitute ? [{ productNameDetail: l.product_name, productNameSubtitution: l.substitute, uomNameSubtitution: l.uom_name }] : [],
+    };
+  });
+}
+
+export function mockIngredientUsage(
+  dateStart: string,
+  dateEnd: string,
+  outlet: string | null,
+  categoryId: string | null,
+  categoryDetailId: string | null
+): { rows: IngredientUsageRow[]; coverage: { menu_qty_total: number; menu_qty_counted: number; menu_qty_not_counted: number } } {
+  const usage = new Map<string, IngredientUsageRow & { menus: Set<string> }>();
+  const coverage = { menu_qty_total: 0, menu_qty_counted: 0, menu_qty_not_counted: 0 };
+  for (const r of mockSalesProductDaily(dateStart, dateEnd, outlet, categoryId, categoryDetailId)) {
+    const qty = r.qty ?? 0;
+    const bom = MOCK_BOMS[r.menu_id];
+    coverage.menu_qty_total += qty;
+    if (!bom || r.sales_date < MOCK_HPP_SNAPSHOT_DATE) {
+      coverage.menu_qty_not_counted += qty;
+      continue;
+    }
+    coverage.menu_qty_counted += qty;
+    for (const l of bom.lines) {
+      const key = `${l.product_id}|${l.uom_name}`;
+      const e =
+        usage.get(key) ??
+        {
+          product_id: l.product_id,
+          product_code: l.product_code,
+          product_name: l.product_name,
+          uom_name: l.uom_name,
+          total_usage_qty: 0,
+          menu_count: 0,
+          est_cost: 0,
+          uncosted_usage_qty: 0,
+          menus: new Set<string>(),
+        };
+      const cost = mockLineCost(l);
+      e.total_usage_qty += qty * l.qty;
+      if (cost === null) e.uncosted_usage_qty += qty * l.qty;
+      else e.est_cost += qty * cost;
+      e.menus.add(r.menu_id);
+      usage.set(key, e);
+    }
+  }
+  const rows = [...usage.values()]
+    .map(({ menus, ...e }) => ({ ...e, menu_count: menus.size }))
+    .sort((a, b) => b.total_usage_qty - a.total_usage_qty);
+  return { rows, coverage };
+}
+
+export function mockIsAdmin() {
+  return true;
 }

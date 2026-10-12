@@ -93,3 +93,58 @@ export function dateRange(start: string, end: string): string[] {
 }
 
 export { PEAK_HOUR_WEIGHT };
+
+/**
+ * Mock BOMs keyed by PRODUCTS.menu_id, for the HPP / ingredient-usage panels.
+ * P5 has no BOM, and P8 has an ingredient with no lastHpp (incomplete cost),
+ * so every status the panels render shows up in mock mode too.
+ */
+export const MOCK_BOMS: Record<
+  string,
+  { bom_id: number; lines: { product_id: number; product_code: string; product_name: string; qty: number; uom_name: string; last_hpp: number | null; substitute?: string }[] }
+> = {
+  P1: { bom_id: 501, lines: [
+    { product_id: 9001, product_code: "RM-KOPI", product_name: "Biji Kopi Arabika", qty: 18, uom_name: "gr", last_hpp: 180, substitute: "Biji Kopi Robusta" },
+    { product_id: 9002, product_code: "RM-SUSU", product_name: "Susu UHT", qty: 150, uom_name: "ml", last_hpp: 18 },
+    { product_id: 9003, product_code: "RM-GULA", product_name: "Gula Aren Cair", qty: 20, uom_name: "ml", last_hpp: 25 },
+    { product_id: 9004, product_code: "PK-CUP", product_name: "Cup Plastik 16oz", qty: 1, uom_name: "pcs", last_hpp: 900 },
+  ] },
+  P2: { bom_id: 502, lines: [
+    { product_id: 9010, product_code: "RM-BERAS", product_name: "Beras", qty: 200, uom_name: "gr", last_hpp: 14 },
+    { product_id: 9011, product_code: "RM-TELUR", product_name: "Telur Ayam", qty: 1, uom_name: "pcs", last_hpp: 2200 },
+    { product_id: 9012, product_code: "RM-AYAM", product_name: "Daging Ayam", qty: 60, uom_name: "gr", last_hpp: 45 },
+    { product_id: 9013, product_code: "RM-MINYAK", product_name: "Minyak Goreng", qty: 15, uom_name: "ml", last_hpp: 17 },
+  ] },
+  P3: { bom_id: 503, lines: [
+    { product_id: 9012, product_code: "RM-AYAM", product_name: "Daging Ayam", qty: 150, uom_name: "gr", last_hpp: 45 },
+    { product_id: 9013, product_code: "RM-MINYAK", product_name: "Minyak Goreng", qty: 40, uom_name: "ml", last_hpp: 17 },
+    { product_id: 9014, product_code: "RM-CABAI", product_name: "Cabai Rawit", qty: 25, uom_name: "gr", last_hpp: 60 },
+    { product_id: 9010, product_code: "RM-BERAS", product_name: "Beras", qty: 180, uom_name: "gr", last_hpp: 14 },
+  ] },
+  P4: { bom_id: 504, lines: [
+    { product_id: 9020, product_code: "RM-COKLAT", product_name: "Dark Chocolate", qty: 40, uom_name: "gr", last_hpp: 120 },
+    { product_id: 9021, product_code: "RM-TEPUNG", product_name: "Tepung Terigu", qty: 30, uom_name: "gr", last_hpp: 12 },
+    { product_id: 9011, product_code: "RM-TELUR", product_name: "Telur Ayam", qty: 1, uom_name: "pcs", last_hpp: 2200 },
+  ] },
+  P6: { bom_id: 506, lines: [
+    { product_id: 9030, product_code: "RM-KENTANG", product_name: "Kentang Beku", qty: 150, uom_name: "gr", last_hpp: 28 },
+    { product_id: 9013, product_code: "RM-MINYAK", product_name: "Minyak Goreng", qty: 30, uom_name: "ml", last_hpp: 17 },
+  ] },
+  P7: { bom_id: 507, lines: [
+    { product_id: 9031, product_code: "RM-TARO", product_name: "Bubuk Taro", qty: 25, uom_name: "gr", last_hpp: 95 },
+    { product_id: 9002, product_code: "RM-SUSU", product_name: "Susu UHT", qty: 100, uom_name: "ml", last_hpp: 18 },
+  ] },
+  P8: { bom_id: 508, lines: [
+    { product_id: 9040, product_code: "RM-BUAH", product_name: "Buah Campur", qty: 200, uom_name: "gr", last_hpp: 30 },
+    { product_id: 9041, product_code: "RM-MAYO", product_name: "Mayones", qty: 30, uom_name: "gr", last_hpp: null },
+  ] },
+  P9: { bom_id: 509, lines: [
+    { product_id: 9050, product_code: "RM-TEH", product_name: "Teh Hitam", qty: 8, uom_name: "gr", last_hpp: 110 },
+    { product_id: 9051, product_code: "RM-SKM", product_name: "Susu Kental Manis", qty: 40, uom_name: "gr", last_hpp: 32 },
+    { product_id: 9004, product_code: "PK-CUP", product_name: "Cup Plastik 16oz", qty: 1, uom_name: "pcs", last_hpp: 900 },
+  ] },
+  P10: { bom_id: 510, lines: [
+    { product_id: 9012, product_code: "RM-AYAM", product_name: "Daging Ayam", qty: 120, uom_name: "gr", last_hpp: 45 },
+    { product_id: 9052, product_code: "RM-KACANG", product_name: "Saus Kacang", qty: 50, uom_name: "gr", last_hpp: 40 },
+  ] },
+};

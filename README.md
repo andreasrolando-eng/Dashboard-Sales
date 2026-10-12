@@ -72,6 +72,33 @@ curl -sS -X POST 'https://<project-ref>.supabase.co/functions/v1/sync-esb' \
 
 Check `sync_log` for the run, and set up a healthchecks.io check pointed at `HEALTHCHECKS_PING_URL` for FR-5's failure alerting.
 
+#### HPP per menu (`sync-esb-hpp`)
+
+A second function syncs ESB's Master Menu (same host/token as above) and each
+menu's BOM from **ESB Core** (a different host that needs a login) into
+`esb_menus` / `esb_bom_lines` / `menu_hpp_snapshots`
+(`supabase/migrations/20261013090000_menu_hpp.sql`). It reuses
+`SYNC_SHARED_SECRET`, `sync_log`, `sync_dispatch` and the existing alert.
+
+```bash
+npx supabase functions deploy sync-esb sync-esb-hpp   # sync-esb too: its auth guard moved to _shared/auth.ts
+npx supabase secrets set ESB_CORE_BASE_URL=... ESB_CORE_USERNAME=... ESB_CORE_PASSWORD=...
+# optional: ESB_HPP_BOM_CONCURRENCY (default 5), ESB_HPP_TIME_BUDGET_MS (default 120000)
+npx supabase db push
+```
+
+Runs daily at 05:00 WIB (`sync-esb-hpp-daily`); admins also get a "Sync HPP"
+button on the Sales tab. Test it manually first:
+
+```bash
+curl -sS -X POST 'https://<project-ref>.supabase.co/functions/v1/sync-esb-hpp'   -H 'Content-Type: application/json' -H 'x-sync-secret: <random-string>' -d '{}'
+```
+
+200 = all BOMs published, 207 = partial (failed BOMs keep their previous
+snapshot), 409 = another HPP run is in progress. The HPP formula in
+`fn_hpp_line_cost` is **provisional** until checked against ESB's own HPP
+figures -- see the comment on that function before trusting the numbers.
+
 ### 4. Run the app
 
 ```bash
