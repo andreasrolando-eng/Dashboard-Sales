@@ -12,7 +12,7 @@ function formatCell(value: string | number | null, format: ExportSpec<unknown>["
 
 async function fetchLogoDataUrl(): Promise<string | null> {
   try {
-    const res = await fetch("/ESB-logo.png");
+    const res = await fetch("/isd-logo.png");
     const blob = await res.blob();
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
