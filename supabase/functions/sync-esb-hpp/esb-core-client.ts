@@ -26,8 +26,19 @@ export class EsbCoreClient {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
     });
-    // Never log the response body here -- keep anything credential-adjacent out of logs.
-    if (!res.ok) throw new Error(`ESB Core login failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      // Surface only ESB's error code/message/field names -- never echo the
+      // request or any token-bearing part of the response.
+      let detail = "";
+      try {
+        const err = (await res.json()) as EsbCoreBody<unknown> & { errors?: { attribute?: string; code?: string; message?: string }[] | null };
+        const fields = (err.errors ?? []).map((e) => [e.attribute, e.code, e.message].filter(Boolean).join(" ")).join("; ");
+        detail = [err.code, err.message, fields].filter(Boolean).join(" | ");
+      } catch {
+        // non-JSON error body
+      }
+      throw new Error(`ESB Core login failed: ${res.status} ${res.statusText}${detail ? ` -- ${detail}` : ""}`);
+    }
     const body = (await res.json()) as EsbCoreBody<{ accessToken?: string }>;
     const token = body?.result?.accessToken;
     if (!token) throw new Error("ESB Core login returned no accessToken");
