@@ -138,7 +138,8 @@ Push to a Git remote and import into Vercel (zero special config — see `.env.l
 ## Repo layout
 
 - `src/app/` — routes: `/login`, `/dashboard` (single shell; tabs are a `?tab=` search param per the design spec, not separate routes).
-- `src/components/tabs/` — Overview / Sales / Membership / Marketing tab bodies (Sales includes `menu-hpp-panel.tsx` and `ingredient-usage-panel.tsx`).
+- `src/lib/modules.ts` — sidebar modules (sold separately): **Sales Analytics** (Overview, Sales, Operasional, Membership, Marketing) and **Cost Control** (HPP & COGS). Every tab belongs to exactly one module; header titles come from here too.
+- `src/components/tabs/` — tab bodies; `hpp-tab.tsx` is the Cost Control tab (KPIs + `menu-hpp-panel.tsx` + `ingredient-usage-panel.tsx`).
 - `src/lib/queries/` — typed Supabase query façade (one function per view/RPC).
 - `src/lib/recommendations.ts` — FR-30–32 rule-based promo/menu recommendations.
 - `supabase/migrations/` — raw tables, RLS, aggregation views, `fn_menu_performance`/`fn_promo_performance`/`fn_membership_summary`/`fn_top_members` (FR-21–29), cron schedule.
