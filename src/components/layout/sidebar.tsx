@@ -2,18 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { useDashboardFilters, type TabKey } from "@/lib/use-dashboard-filters";
+import { useDashboardFilters } from "@/lib/use-dashboard-filters";
+import { MODULES, type NavIcon } from "@/lib/modules";
 import { useLogout } from "./logout-button";
 
-type IconName = "overview" | "sales" | "ops" | "membership" | "marketing" | "users" | "logout" | "chevron";
-
-const NAV_ITEMS: { key: TabKey; label: string; icon: IconName }[] = [
-  { key: "overview", label: "Overview", icon: "overview" },
-  { key: "sales", label: "Sales", icon: "sales" },
-  { key: "ops", label: "Operasional", icon: "ops" },
-  { key: "membership", label: "Membership", icon: "membership" },
-  { key: "marketing", label: "Marketing", icon: "marketing" },
-];
+type IconName = NavIcon | "users" | "logout" | "chevron";
 
 const ADMIN_HREF = "/dashboard/admin/users";
 
@@ -83,19 +76,23 @@ export function Sidebar({
         </div>
       </div>
 
-      <SectionLabel compact={compact}>Dashboard</SectionLabel>
-      <nav className="flex flex-col gap-1 mb-5">
-        {NAV_ITEMS.map((item) => (
-          <NavItem
-            key={item.key}
-            label={item.label}
-            icon={item.icon}
-            compact={compact}
-            active={onDashboardRoot && tab === item.key}
-            onClick={() => go(`/dashboard?tab=${item.key}`)}
-          />
-        ))}
-      </nav>
+      {MODULES.map((module) => (
+        <div key={module.key}>
+          <SectionLabel compact={compact}>{module.label}</SectionLabel>
+          <nav className="flex flex-col gap-1 mb-5">
+            {module.tabs.map((item) => (
+              <NavItem
+                key={item.key}
+                label={item.label}
+                icon={item.icon}
+                compact={compact}
+                active={onDashboardRoot && tab === item.key}
+                onClick={() => go(`/dashboard?tab=${item.key}`)}
+              />
+            ))}
+          </nav>
+        </div>
+      ))}
 
       {isAdmin && (
         <>
@@ -226,6 +223,14 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M3 10v4a1 1 0 001 1h3l6 4V5L7 9H4a1 1 0 00-1 1z" />
       <path d="M17 9a4 4 0 010 6" />
+    </>
+  ),
+  cost: (
+    <>
+      <path d="M6 3h12a1 1 0 011 1v17l-3-2-2.5 2L12 19l-1.5 2L8 19l-3 2V4a1 1 0 011-1z" />
+      <path d="M9 8h6" />
+      <path d="M9 12h6" />
+      <path d="M9 16h3" />
     </>
   ),
   users: (

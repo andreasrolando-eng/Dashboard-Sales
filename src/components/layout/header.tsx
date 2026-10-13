@@ -1,18 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useDashboardFilters, type TabKey } from "@/lib/use-dashboard-filters";
+import { useDashboardFilters } from "@/lib/use-dashboard-filters";
+import { TAB_TITLES } from "@/lib/modules";
 import { getLastSync } from "@/lib/queries/meta";
 import { ManualSyncButton } from "./manual-sync-button";
 import { FullReportExportButton } from "@/components/ui/full-report-export-button";
 
-const TITLE_MAP: Record<TabKey, string> = {
-  overview: "Overview",
-  sales: "Analisa Sales",
-  ops: "Analisa Operasional",
-  membership: "Analisa Membership",
-  marketing: "Marketing",
-};
 
 export function Header() {
   const { tab } = useDashboardFilters();
@@ -31,7 +25,7 @@ export function Header() {
   return (
     <div className="flex flex-wrap justify-between items-start gap-3 mb-5">
       <div>
-        <div className="text-2xl font-bold text-text">{TITLE_MAP[tab]}</div>
+        <div className="text-2xl font-bold text-text">{TAB_TITLES[tab]}</div>
         <div className="text-[13px] text-text-secondary mt-1">Data terakhir diperbarui: {lastSyncedLabel}</div>
       </div>
       <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-start">

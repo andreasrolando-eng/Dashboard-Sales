@@ -9,6 +9,7 @@ import { SalesTab } from "@/components/tabs/sales-tab";
 import { OpsTab } from "@/components/tabs/ops-tab";
 import { MembershipTab } from "@/components/tabs/membership-tab";
 import { MarketingTab } from "@/components/tabs/marketing-tab";
+import { HppTab } from "@/components/tabs/hpp-tab";
 
 function DashboardContent() {
   const { tab } = useDashboardFilters();
@@ -22,6 +23,7 @@ function DashboardContent() {
       {tab === "ops" && <OpsTab />}
       {tab === "membership" && <MembershipTab />}
       {tab === "marketing" && <MarketingTab />}
+      {tab === "hpp" && <HppTab />}
     </>
   );
 }

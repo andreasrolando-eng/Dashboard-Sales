@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { test, expect, type Page } from "@playwright/test";
 
-const TABS = ["overview", "sales", "ops", "membership", "marketing"] as const;
+const TABS = ["overview", "sales", "ops", "membership", "marketing", "hpp"] as const;
 
 /** Fails the test on any browser console error or uncaught page error. */
 function trackErrors(page: Page): { errors: string[] } {

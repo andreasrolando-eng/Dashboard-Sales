@@ -12,8 +12,6 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { SimpleBarChart } from "@/components/charts/simple-bar-chart";
 import { OutletBarList } from "@/components/charts/outlet-bar-list";
 import { MenuUnderperformingPanel } from "./menu-underperforming-panel";
-import { MenuHppPanel } from "./menu-hpp-panel";
-import { IngredientUsagePanel } from "./ingredient-usage-panel";
 import { SalesBillListPanel } from "./sales-bill-list-panel";
 
 export function SalesTab() {
@@ -173,10 +171,6 @@ export function SalesTab() {
         dateStart={dateStart}
         dateEnd={dateEnd}
       />
-
-      <MenuHppPanel outlet={outlet} category={category} categoryDetail={categoryDetail} dateStart={dateStart} dateEnd={dateEnd} />
-
-      <IngredientUsagePanel outlet={outlet} category={category} categoryDetail={categoryDetail} dateStart={dateStart} dateEnd={dateEnd} />
 
       <SalesBillListPanel key={`${outlet}|${dateStart}|${dateEnd}`} outlet={outlet} dateStart={dateStart} dateEnd={dateEnd} />
     </>
